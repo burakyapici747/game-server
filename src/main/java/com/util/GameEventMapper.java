@@ -11,8 +11,10 @@ public final class GameEventMapper {
         if (smallGameEvent != null && target != null) {
             target.setActionType(smallGameEvent.getActionType());
             target.setChannel(smallGameEvent.getChannel());
-            target.setX(smallGameEvent.getX());
-            target.setY(smallGameEvent.getY());
+            target.setDx(smallGameEvent.getDx());
+            target.setDy(smallGameEvent.getDy());
+            target.setTimestamp(smallGameEvent.getTimestamp());
+            target.setSequenceId(smallGameEvent.getSequenceId());
             target.setRotateAngle(smallGameEvent.getRotateAngle());
         }
     }

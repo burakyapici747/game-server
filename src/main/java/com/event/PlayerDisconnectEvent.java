@@ -8,6 +8,7 @@ public class PlayerDisconnectEvent implements EventHandler<GameEvent> {
     public void onEvent(GameEvent gameEvent, long l, boolean b) throws Exception {
         if(gameEvent != null && ActionType.DISCONNECT.equals(gameEvent.getActionType())) {
             WebsocketServer.activePlayerMap.remove(gameEvent.getChannel().id().toString());
+            gameEvent.getGame().removePlayer(gameEvent);
             System.out.println(WebsocketServer.activePlayerMap.size());
         }
     }

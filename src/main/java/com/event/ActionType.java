@@ -6,5 +6,7 @@ public enum ActionType {
     MOVE,
     ROTATION,
     FIRE,
-    DEATH
+    DEATH,
+    PING,
+    PONG
 }

@@ -24,6 +24,12 @@
             <artifactId>dyn4j</artifactId>
             <version>5.0.2</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.19.0</version>
+        </dependency>
     </dependencies>
 
     <properties>

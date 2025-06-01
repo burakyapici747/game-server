@@ -7,9 +7,10 @@ public class GameEvent {
     private final Game game;
     private ActionType actionType;
     private Channel channel;
+    private Long timestamp;
     private Short rotateAngle;
-    private Float x;
-    private Float y;
+    private Float dx;
+    private Float dy;
     private Long sequenceId;
 
     public GameEvent(Game game) {
@@ -24,20 +25,20 @@ public class GameEvent {
         this.rotateAngle = rotateAngle;
     }
 
-    public Float getX() {
-        return x;
+    public Float getDx() {
+        return dx;
     }
 
-    public void setX(Float x) {
-        this.x = x;
+    public void setDx(Float dx) {
+        this.dx = dx;
     }
 
-    public Float getY() {
-        return y;
+    public Float getDy() {
+        return dy;
     }
 
-    public void setY(Float y) {
-        this.y = y;
+    public void setDy(Float dy) {
+        this.dy = dy;
     }
 
     public ActionType getActionType() {
@@ -66,6 +67,14 @@ public class GameEvent {
 
     public Game getGame() {
         return game;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 }
 

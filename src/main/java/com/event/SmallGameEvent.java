@@ -1,14 +1,20 @@
 package com.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.netty.channel.Channel;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SmallGameEvent {
     private ActionType actionType;
     private Channel channel;
     private Short rotateAngle;
-    private Float x;
-    private Float y;
+    private Long timestamp;
+    private Float dx;
+    private Float dy;
     private Long sequenceId;
+
+    public SmallGameEvent() {
+    }
 
     public ActionType getActionType() {
         return actionType;
@@ -34,20 +40,20 @@ public class SmallGameEvent {
         this.rotateAngle = rotateAngle;
     }
 
-    public Float getX() {
-        return x;
+    public Float getDx() {
+        return dx;
     }
 
-    public void setX(Float x) {
-        this.x = x;
+    public void setDx(Float dx) {
+        this.dx = dx;
     }
 
-    public Float getY() {
-        return y;
+    public Float getDy() {
+        return dy;
     }
 
-    public void setY(Float y) {
-        this.y = y;
+    public void setDy(Float dy) {
+        this.dy = dy;
     }
 
     public Long getSequenceId() {
@@ -56,5 +62,13 @@ public class SmallGameEvent {
 
     public void setSequenceId(Long sequenceId) {
         this.sequenceId = sequenceId;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 }

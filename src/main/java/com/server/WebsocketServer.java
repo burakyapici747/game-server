@@ -2,6 +2,7 @@ package com.server;
 
 import com.Player;
 import com.event.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.game.Game;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.RingBuffer;
@@ -45,21 +46,25 @@ public class WebsocketServer {
             setupDisruptor();
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel.class)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
-                    ChannelPipeline pipeline = socketChannel.pipeline();
-                    WebsocketFrameHandler websocketFrameHandler = new WebsocketFrameHandler(ringBuffer);
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            ChannelPipeline pipeline = socketChannel.pipeline();
+                            ObjectMapper objectMapper = new ObjectMapper();
 
+                            WebsocketFrameHandler websocketFrameHandler = new WebsocketFrameHandler(ringBuffer, objectMapper);
+                            PingPongHandler pingPongHandler = new PingPongHandler(objectMapper);
 
-                    //websocket destekli pipeline yapilandirmasi
-                    pipeline.addLast(new HttpServerCodec());
-                    pipeline.addLast(new HttpObjectAggregator(65536));//Websocket handshake islemleri icin gerekli
-                    pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));//websocket upgrade ve frame yonetimi
-                    pipeline.addLast(websocketFrameHandler);//kendi handler'imiz
-                    }
-                });
+                            //websocket destekli pipeline yapilandirmasi
+                            pipeline.addLast(new HttpServerCodec());
+                            pipeline.addLast(new HttpObjectAggregator(65536));//Websocket handshake islemleri icin gerekli
+                            pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));//websocket upgrade ve frame yonetimi
+                            pipeline.addLast(websocketFrameHandler);
+                            pipeline.addLast(pingPongHandler);
+
+                        }
+                    });
             System.out.println("channel init");
             ChannelFuture channelFuture = bootstrap.bind(8080).sync();
             channelFuture.channel().closeFuture().sync();
@@ -73,17 +78,22 @@ public class WebsocketServer {
     }
 
     private void setupDisruptor() {
+        //GameEvent icerisinde kullanmak uzere bir Game referansi olusturuldu
         Game game = new Game();
+        //RingBuffer'da tutulacak GameEvent'in constructur'ina yukarida olusturulan Game nesnesini pass'layan factory
         EventFactory<GameEvent> factory = () -> new GameEvent(game);
         disruptor = new Disruptor<>(
-            factory,
-            1024,
-            DaemonThreadFactory.INSTANCE,
-            ProducerType.MULTI,
-            new YieldingWaitStrategy()
+                factory,
+                262144,
+                DaemonThreadFactory.INSTANCE,
+                ProducerType.MULTI,
+                new YieldingWaitStrategy()
         );
 
+        //disruptor uzerinden generate edilmis ringBuffer'in setle
         ringBuffer = disruptor.getRingBuffer();
+
+        //Eventleri olustur ve siralamalari ayarla
         PlayerConnectEvent playerConnectEvent = new PlayerConnectEvent();
         PlayerDisconnectEvent playerDisconnectEvent = new PlayerDisconnectEvent();
         PlayerInputEvent playerInputEvent = new PlayerInputEvent();
@@ -91,7 +101,9 @@ public class WebsocketServer {
 
         disruptor.handleEventsWith(playerConnectEvent, playerDisconnectEvent, playerInputEvent, physicEvent);
         disruptor.after(playerInputEvent)
-            .then(physicEvent);
+                .then(physicEvent);
+
+        //Disruptor'u baslat
         disruptor.start();
     }
 }
