@@ -23,14 +23,11 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<TextWebSo
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame frame) throws Exception {
         String message = frame.text();
-        if(!message.contains("PING")) {
-            List<SmallGameEvent> smallGameEvent = objectMapper.readValue(message, new TypeReference<List<SmallGameEvent>>() {
-            });
-            smallGameEvent.forEach(gameEvent -> gameEvent.setChannel(ctx.channel()));
-            publishToDisruptor(smallGameEvent);
-        }else {
-            ctx.fireChannelRead(frame.retain());
-        }
+        System.out.println(frame.text());
+        List<SmallGameEvent> smallGameEvent = objectMapper.readValue(message, new TypeReference<List<SmallGameEvent>>() {
+        });
+        smallGameEvent.forEach(gameEvent -> gameEvent.setChannel(ctx.channel()));
+        publishToDisruptor(smallGameEvent);
     }
 
     @Override

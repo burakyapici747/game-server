@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class ClientData {
     private ActionType actionType;
     private Long serverTimestamp;
+    private Long clientTimestamp;
 
     public Long getServerTimestamp() {
         return serverTimestamp;
@@ -22,5 +23,13 @@ public class ClientData {
 
     public void setActionType(ActionType actionType) {
         this.actionType = actionType;
+    }
+
+    public Long getClientTimestamp() {
+        return clientTimestamp;
+    }
+
+    public void setClientTimestamp(Long clientTimestamp) {
+        this.clientTimestamp = clientTimestamp;
     }
 }

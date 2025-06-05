@@ -18,22 +18,35 @@ public class PingPongHandler extends SimpleChannelInboundHandler<TextWebSocketFr
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame frame) throws Exception {
         try {
             String message = frame.text();
-            ClientData incomingData = objectMapper.readValue(message, ClientData.class);
-            if (incomingData != null && ActionType.PING.equals(incomingData.getActionType())) {
-                ClientData clientData = new ClientData();
-                clientData.setServerTimestamp(System.currentTimeMillis());
-                clientData.setActionType(ActionType.PONG);
-                ctx.channel().writeAndFlush(new TextWebSocketFrame(objectMapper.writeValueAsString(clientData)));
-            }
-        }catch (Exception e){
+            System.out.println(message);
+            if (message.contains("PING")) {
+                ClientData incomingData = objectMapper.readValue(message, ClientData.class);
+                if (incomingData != null && ActionType.PING.equals(incomingData.getActionType())) {
+                    System.out.println("Gelen => " + incomingData.getClientTimestamp());
+                    ClientData clientData = new ClientData();
+                    clientData.setClientTimestamp(incomingData.getClientTimestamp());
+                    clientData.setServerTimestamp(System.currentTimeMillis());
+                    clientData.setActionType(ActionType.PONG);
+                    ctx.channel().writeAndFlush(new TextWebSocketFrame(objectMapper.writeValueAsString(clientData)));
+                    System.out.println("Giden => " + clientData.getClientTimestamp());
+                    return;
+                }
 
+            }else {
+                ctx.fireChannelRead(frame.retain());
+                return;
+            }
+        } catch (Exception e) {
+            ctx.fireChannelRead(frame.retain());
+            return;
         }
 
+        ctx.fireChannelRead(frame.retain());
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
-        System.out.println(cause.getMessage());
+        cause.printStackTrace();
+        ctx.close();
     }
 }

@@ -60,11 +60,11 @@ public class WebsocketServer {
                             pipeline.addLast(new HttpServerCodec());
                             pipeline.addLast(new HttpObjectAggregator(65536));//Websocket handshake islemleri icin gerekli
                             pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));//websocket upgrade ve frame yonetimi
-                            pipeline.addLast(websocketFrameHandler);
                             pipeline.addLast(pingPongHandler);
 
                         }
-                    });
+                    })
+                    .childOption(ChannelOption.TCP_NODELAY, true);
             System.out.println("channel init");
             ChannelFuture channelFuture = bootstrap.bind(8080).sync();
             channelFuture.channel().closeFuture().sync();
