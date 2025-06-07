@@ -10,6 +10,7 @@ public class Input {
     private Float dy;
     private Long sequenceId;
     private String channelId;
+    private Long clientTimestampOffset;
 
     public Input() {}
 
@@ -76,5 +77,13 @@ public class Input {
 
     public void setChannelId(String channelId) {
         this.channelId = channelId;
+    }
+
+    public Long getClientTimestampOffset() {
+        return clientTimestampOffset;
+    }
+
+    public void setClientTimestampOffset(Long clientTimestampOffset) {
+        this.clientTimestampOffset = clientTimestampOffset;
     }
 }

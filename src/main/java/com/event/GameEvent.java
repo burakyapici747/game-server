@@ -12,6 +12,8 @@ public class GameEvent {
     private Float dx;
     private Float dy;
     private Long sequenceId;
+    private Long clientTimestampOffset;
+    private int offset;
 
     public GameEvent(Game game) {
         this.game = game;
@@ -75,6 +77,22 @@ public class GameEvent {
 
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public int getOffset() {
+        return offset;
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
+    public Long getClientTimestampOffset() {
+        return clientTimestampOffset;
+    }
+
+    public void setClientTimestampOffset(Long clientTimestampOffset) {
+        this.clientTimestampOffset = clientTimestampOffset;
     }
 }
 

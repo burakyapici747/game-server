@@ -8,6 +8,8 @@ public class ClientData {
     private ActionType actionType;
     private Long serverTimestamp;
     private Long clientTimestamp;
+    private Long clientTimestampOffset;
+    private String nonce;
 
     public Long getServerTimestamp() {
         return serverTimestamp;
@@ -31,5 +33,21 @@ public class ClientData {
 
     public void setClientTimestamp(Long clientTimestamp) {
         this.clientTimestamp = clientTimestamp;
+    }
+
+    public void setNonce(String nonce){
+        this.nonce = nonce;
+    }
+
+    public String getNonce(){
+        return this.nonce;
+    }
+
+    public Long getClientTimestampOffset() {
+        return clientTimestampOffset;
+    }
+
+    public void setClientTimestampOffset(Long clientTimestampOffset) {
+        this.clientTimestampOffset = clientTimestampOffset;
     }
 }

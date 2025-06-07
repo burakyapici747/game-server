@@ -1,7 +1,6 @@
 package com.server;
 
 import com.event.*;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lmax.disruptor.RingBuffer;
 import com.util.GameEventMapper;
@@ -23,10 +22,12 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<TextWebSo
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame frame) throws Exception {
         String message = frame.text();
-        System.out.println(frame.text());
-        List<SmallGameEvent> smallGameEvent = objectMapper.readValue(message, new TypeReference<List<SmallGameEvent>>() {
-        });
-        smallGameEvent.forEach(gameEvent -> gameEvent.setChannel(ctx.channel()));
+        SmallGameEvent smallGameEvent = objectMapper.readValue(message, SmallGameEvent.class);
+
+        smallGameEvent.setChannel(ctx.channel());
+        long currentTime = System.currentTimeMillis();
+        //System.out.println("Server Saat " + currentTime + " Client Date " + gameEvent.getTimestamp() + "Fark = " + Math.abs(System.currentTimeMillis() - gameEvent.getTimestamp()));
+
         publishToDisruptor(smallGameEvent);
     }
 

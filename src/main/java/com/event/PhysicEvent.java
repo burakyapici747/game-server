@@ -17,8 +17,15 @@ public class PhysicEvent implements EventHandler<GameEvent> {
             input.setDy(gameEvent.getDy());
             input.setSequenceId(gameEvent.getSequenceId());
             input.setChannelId(gameEvent.getChannel().id().asLongText());
+            input.setClientTimestampOffset(gameEvent.getClientTimestampOffset());
+
+            long currentTime = System.currentTimeMillis();
+            long currentTimeOffset = Math.abs(currentTime - gameEvent.getClientTimestampOffset());
+
+            //System.out.println(currentTimeOffset);
+//            System.out.println(gameEvent.getClientTimestampOffset() + " Sequence number" + gameEvent.getSequenceId() + " currentTimeoffset " + currentTimeOffset);
+
             gameEvent.getGame().addInput(input);
-            System.out.println("veri geldi");
         }
     }
 }

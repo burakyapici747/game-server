@@ -4,9 +4,7 @@ import com.Player;
 import com.event.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.game.Game;
-import com.lmax.disruptor.EventFactory;
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.YieldingWaitStrategy;
+import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.util.DaemonThreadFactory;
@@ -61,15 +59,14 @@ public class WebsocketServer {
                             pipeline.addLast(new HttpObjectAggregator(65536));//Websocket handshake islemleri icin gerekli
                             pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));//websocket upgrade ve frame yonetimi
                             pipeline.addLast(pingPongHandler);
+                            pipeline.addLast(websocketFrameHandler);
 
                         }
                     })
                     .childOption(ChannelOption.TCP_NODELAY, true);
-            System.out.println("channel init");
             ChannelFuture channelFuture = bootstrap.bind(8080).sync();
             channelFuture.channel().closeFuture().sync();
         } catch (RuntimeException e) {
-            System.out.println("Error starting server: " + e.getMessage());
         } finally {
             // Shutdown the event loop groups
             bossGroup.shutdownGracefully();
@@ -87,7 +84,7 @@ public class WebsocketServer {
                 262144,
                 DaemonThreadFactory.INSTANCE,
                 ProducerType.MULTI,
-                new YieldingWaitStrategy()
+                new SleepingWaitStrategy()
         );
 
         //disruptor uzerinden generate edilmis ringBuffer'in setle
@@ -99,7 +96,7 @@ public class WebsocketServer {
         PlayerInputEvent playerInputEvent = new PlayerInputEvent();
         PhysicEvent physicEvent = new PhysicEvent();
 
-        disruptor.handleEventsWith(playerConnectEvent, playerDisconnectEvent, playerInputEvent, physicEvent);
+        disruptor.handleEventsWith(playerConnectEvent, playerDisconnectEvent, playerInputEvent);
         disruptor.after(playerInputEvent)
                 .then(physicEvent);
 

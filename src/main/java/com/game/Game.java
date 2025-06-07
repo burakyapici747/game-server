@@ -8,23 +8,16 @@ import com.event.data.Input;
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.geometry.Geometry;
 import org.dyn4j.geometry.MassType;
-import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class Game {
     private final ScheduledExecutorService tickScheduler;
 
-    private final Long TICK_RATE_IN_MS = 100L;
+    private final long TICK_RATE_IN_MS = 16;
     private final World<Body> world;
     public final Map<String, Player> playersByChannelId = new ConcurrentHashMap<>();
 
@@ -33,7 +26,9 @@ public class Game {
     private DrawingPanel drawingPanel;
 
     //TODO: Daha performansli bir veri yapisinda saklanacaklar!!!
-    public final List<Input> inputBuffer = new ArrayList<>();
+    public final PriorityQueue<Input> inputBuffer = new PriorityQueue<>(
+        Comparator.comparingLong(Input::getClientTimestampOffset)
+    );
     //En son hangi timestamp degeri islendi, lastServerTickEndTimestamp + TICK_RATE_IN_MS degeri koyulacak
     public Long lastServerTickEndTimestamp = 0L;
 
@@ -50,10 +45,10 @@ public class Game {
             return t;
         });
         this.tickScheduler.scheduleAtFixedRate(
-                this::onServerTick,
-                0L,
-                TICK_RATE_IN_MS,
-                TimeUnit.MILLISECONDS
+            this::onServerTick,
+            0L,
+            TICK_RATE_IN_MS,
+            TimeUnit.MILLISECONDS
         );
 
         // 2) Görselleştirme penceresini başlat
@@ -85,8 +80,8 @@ public class Game {
     }
 
     public void addInput(Input input) {
-        synchronized (this.inputBuffer) {
-            this.inputBuffer.add(input);
+        if(input.getClientTimestampOffset() != null) {
+            this.inputBuffer.offer(input);
         }
     }
 
@@ -94,10 +89,15 @@ public class Game {
         Body playerBody = new Body();
 
         if (ActionType.CONNECT.equals(gameEvent.getActionType())) {
+            Player newPlayer = new Player();
+            newPlayer.setBody(playerBody);
+            newPlayer.setName("test");
+            newPlayer.setChannelId(gameEvent.getChannel().id().asLongText());
+            this.playersByChannelId.put(gameEvent.getChannel().id().asLongText(), newPlayer);
             playerBody.addFixture(
-                    Geometry.createCircle(0.5),
-                    1.0,
-                    0.4, 0.4
+                Geometry.createCircle(0.5),
+                1.0,
+                0.4, 0.4
             );
             playerBody.setMass(MassType.NORMAL);
             this.world.addBody(playerBody);
@@ -119,67 +119,21 @@ public class Game {
     public void onServerTick() {
         try {
             long tickStart = System.currentTimeMillis();
-            long tickEnd = tickStart + TICK_RATE_IN_MS;
+            double tickEnd = tickStart + TICK_RATE_IN_MS;
 
             List<Input> toProcess;
-            synchronized (this.inputBuffer) {
-                // 1) “T’den önceki” input’ları temizleme
-                Iterator<Input> iterator = this.inputBuffer.iterator();
-//                while (iterator.hasNext()) {
-//                    Input inp = iterator.next();
-//                    if (inp.getTimestamp() < tickStart) {
-//                        // Bu input’u T’den önce geldiği için artık kullanmayacağız
-//                        iterator.remove();
-//                    } else {
-//                        // Birazdan bu listeyi filtreleyeceğiz, ama
-//                        // kesinlikle T’den küçük olanlar artık orada kalmasın.
-//                    }
-//                }
 
-                // 2) T … T+TICK_RATE aralığındaki input’ları ayıklama
-//                for (Input inp : this.inputBuffer) {
-//                    long ts = inp.getTimestamp();
-//                    if (ts >= tickStart && ts < tickEnd) {
-//                        toProcess.add(inp);
-//                    }
-//                }
-                toProcess = new ArrayList<>(this.inputBuffer);
-            }
-            toProcess.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
-            calculatePhysics(toProcess, tickStart);
+            calculatePhysics();
         }catch (Exception e) {
-            System.out.println(e.getMessage());
         }
 
     }
 
-    private void calculatePhysics(List<Input> inputs, long tickStart) {
-
-        double simTimeMs = 0.0;
-        final double speed = 5.0; // Birim zamanda (örneğin saniyede) birim piksel/ölçü. İstersen ayarla.
-
-        // 1) Gelen input’ları zaman sırasına göre sıraladık (zaten caller’da da sort edebilirsin).
-        inputs.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
-
-        for (Input in : inputs) {
-            // 2a) Bu input’un “tick başlangıcından ne kadar ms sonra” gerçekleştiğini hesapla
-            double eventTimeMs = (double)(in.getTimestamp() - tickStart);
-            // 2b) simTimeMs’tan eventTimeMs’e kadar geçen süre dtMs
-            double dtMs = eventTimeMs - simTimeMs;
-            if (dtMs < 0) {
-                // Bazen aynı timestamp veya küçük timestamp gelmiş olabilir, bu durumda
-                // dtMs’yi 0 kabul et ve devam et.
-                dtMs = 0;
-            }
-            double dtSec = dtMs / 1000.0;
-
-            // 2c) O ana kadar fizik motorunu ilerlet
-            if (dtSec > 0) {
-                world.step(1, dtSec);
-                simTimeMs += dtMs; // “Zamanı tüket”
-            }
-
-            // 3) Şimdi ilgili oyuncu için dx/dy’ye göre Body’ye atamayı yap
+    private void calculatePhysics() {
+        final double speed = 5;
+        long startTime = System.nanoTime();
+        while(!this.inputBuffer.isEmpty()) {
+            Input in = this.inputBuffer.poll();
             Player player = playersByChannelId.get(in.getChannelId());
             if (player != null) {
                 Body body = player.getBody();
@@ -187,23 +141,24 @@ public class Game {
                     // --- Seçenek A: Sabit hız kullanmak (daha deterministik) ---
                     body.setLinearVelocity(in.getDx() * speed, in.getDy() * speed);
 
+                    world.step(1, 0.016);
                     // --- Seçenek B: Kuvvet ile ilerle (ancak bu durumda önce kuvvet ve hızı sıfırlamak gerekebilir) ---
-                    // body.setLinearVelocity(0, 0);
-                    // body.applyForce(new Vector2(in.getDx() * forceMagnitude, in.getDy() * forceMagnitude));
+//                     body.setLinearVelocity(0, 0);
+//                     body.applyForce(new Vector2(in.getDx() * forceMagnitude, in.getDy() * forceMagnitude));
+
+
+                    //System.out.println("Pos: " + body.getTransform().getTranslation());
+
                 }
+
             }
-            // Döngü başa döndüğünde, bir sonraki input için simTimeMs doğru tutulacak.
         }
 
-        // 4) Böylece tüm input’lar işlendi. Şimdi “o tick süresi” (örneğin 100ms) dolana kadar
-        //    kalan süre için de fizik adımını bir kez daha uygula.
-        double remainingTimeMs = TICK_RATE_IN_MS - simTimeMs;
-        if (remainingTimeMs < 0) {
-            remainingTimeMs = 0;
-        }
-        double remainingTimeSec = remainingTimeMs / 1000.0;
-        if (remainingTimeSec > 0) {
-            world.step(1, remainingTimeSec);
-        }
+        long endTime = System.nanoTime();
+
+        long durationNs = (endTime - startTime);
+
+        System.out.println(durationNs);
+
     }
 }

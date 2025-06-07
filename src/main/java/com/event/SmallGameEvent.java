@@ -12,6 +12,7 @@ public class SmallGameEvent {
     private Float dx;
     private Float dy;
     private Long sequenceId;
+    private Long clientTimestampOffset;
 
     public SmallGameEvent() {
     }
@@ -70,5 +71,13 @@ public class SmallGameEvent {
 
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public Long getClientTimestampOffset() {
+        return clientTimestampOffset;
+    }
+
+    public void setClientTimestampOffset(Long clientTimestampOffset) {
+        this.clientTimestampOffset = clientTimestampOffset;
     }
 }
