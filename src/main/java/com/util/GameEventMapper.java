@@ -13,9 +13,7 @@ public final class GameEventMapper {
             target.setChannel(smallGameEvent.getChannel());
             target.setDx(smallGameEvent.getDx());
             target.setDy(smallGameEvent.getDy());
-            target.setTimestamp(smallGameEvent.getTimestamp());
             target.setSequenceId(smallGameEvent.getSequenceId());
-            target.setRotateAngle(smallGameEvent.getRotateAngle());
             target.setClientTimestampOffset(smallGameEvent.getClientTimestampOffset());
         }
     }

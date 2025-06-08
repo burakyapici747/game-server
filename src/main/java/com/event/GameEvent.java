@@ -7,24 +7,13 @@ public class GameEvent {
     private final Game game;
     private ActionType actionType;
     private Channel channel;
-    private Long timestamp;
-    private Short rotateAngle;
     private Float dx;
     private Float dy;
     private Long sequenceId;
     private Long clientTimestampOffset;
-    private int offset;
 
     public GameEvent(Game game) {
         this.game = game;
-    }
-
-    public Short getRotateAngle() {
-        return rotateAngle;
-    }
-
-    public void setRotateAngle(Short rotateAngle) {
-        this.rotateAngle = rotateAngle;
     }
 
     public Float getDx() {
@@ -69,22 +58,6 @@ public class GameEvent {
 
     public Game getGame() {
         return game;
-    }
-
-    public Long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Long timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public int getOffset() {
-        return offset;
-    }
-
-    public void setOffset(int offset) {
-        this.offset = offset;
     }
 
     public Long getClientTimestampOffset() {

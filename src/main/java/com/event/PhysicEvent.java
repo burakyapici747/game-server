@@ -11,8 +11,6 @@ public class PhysicEvent implements EventHandler<GameEvent> {
             Input input = new Input();
 
             input.setActionType(gameEvent.getActionType());
-            input.setTimestamp(gameEvent.getTimestamp());
-            input.setRotateAngle(gameEvent.getRotateAngle());
             input.setDx(gameEvent.getDx());
             input.setDy(gameEvent.getDy());
             input.setSequenceId(gameEvent.getSequenceId());
@@ -23,8 +21,9 @@ public class PhysicEvent implements EventHandler<GameEvent> {
             long currentTimeOffset = Math.abs(currentTime - gameEvent.getClientTimestampOffset());
 
             //System.out.println(currentTimeOffset);
-//            System.out.println(gameEvent.getClientTimestampOffset() + " Sequence number" + gameEvent.getSequenceId() + " currentTimeoffset " + currentTimeOffset);
+            //System.out.println(gameEvent.getClientTimestampOffset() + " Sequence number" + gameEvent.getSequenceId() + " currentTimeoffset " + currentTimeOffset);
 
+            //System.out.println(input);
             gameEvent.getGame().addInput(input);
         }
     }

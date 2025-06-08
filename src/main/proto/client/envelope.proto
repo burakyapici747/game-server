@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package envelope;
+
+import "client/clientData.proto";
+import "client/ping.proto";
+
+message Envelope {
+  oneof payload {
+    client.ClientData clientData = 1;
+    client.PingData pingData = 2;
+  }
+}

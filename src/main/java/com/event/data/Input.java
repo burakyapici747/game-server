@@ -4,8 +4,6 @@ import com.event.ActionType;
 
 public class Input {
     private ActionType actionType;
-    private Long timestamp;
-    private Short rotateAngle;
     private Float dx;
     private Float dy;
     private Long sequenceId;
@@ -14,10 +12,8 @@ public class Input {
 
     public Input() {}
 
-    public Input(ActionType actionType, Long timestamp, Short rotateAngle, Float dx, Float dy, Long sequenceId) {
+    public Input(ActionType actionType, Float dx, Float dy, Long sequenceId) {
         this.actionType = actionType;
-        this.timestamp = timestamp;
-        this.rotateAngle = rotateAngle;
         this.dx = dx;
         this.dy = dy;
         this.sequenceId = sequenceId;
@@ -25,14 +21,6 @@ public class Input {
 
     public ActionType getActionType() {
         return actionType;
-    }
-
-    public Long getTimestamp() {
-        return timestamp;
-    }
-
-    public Short getRotateAngle() {
-        return rotateAngle;
     }
 
     public Float getDx() {
@@ -49,14 +37,6 @@ public class Input {
 
     public void setActionType(ActionType actionType) {
         this.actionType = actionType;
-    }
-
-    public void setTimestamp(Long timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public void setRotateAngle(Short rotateAngle) {
-        this.rotateAngle = rotateAngle;
     }
 
     public void setDx(Float dx) {

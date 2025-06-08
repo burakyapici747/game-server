@@ -26,8 +26,9 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<TextWebSo
 
         smallGameEvent.setChannel(ctx.channel());
         long currentTime = System.currentTimeMillis();
-        //System.out.println("Server Saat " + currentTime + " Client Date " + gameEvent.getTimestamp() + "Fark = " + Math.abs(System.currentTimeMillis() - gameEvent.getTimestamp()));
+        long currentTimeOffset = Math.abs(currentTime - smallGameEvent.getClientTimestampOffset());
 
+        //System.out.println(smallGameEvent.getClientTimestampOffset()  + " currentTimeoffset " + currentTimeOffset);
         publishToDisruptor(smallGameEvent);
     }
 

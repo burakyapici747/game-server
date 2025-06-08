@@ -5,52 +5,44 @@ import com.Player;
 import com.event.ActionType;
 import com.event.GameEvent;
 import com.event.data.Input;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.group.ChannelGroup;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.geometry.Geometry;
 import org.dyn4j.geometry.MassType;
+import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
+import server.GameStateOuterClass;
 
 import javax.swing.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class Game {
-    private final ScheduledExecutorService tickScheduler;
-
-    private final long TICK_RATE_IN_MS = 16;
+public class Game implements Runnable{
+    private final double DT = 1 / 60.0;
     private final World<Body> world;
+    private final ChannelGroup channels;
     public final Map<String, Player> playersByChannelId = new ConcurrentHashMap<>();
+
 
     // Yeni: Görselleştirme için Swing bileşenleri
     private JFrame frame;
     private DrawingPanel drawingPanel;
 
     //TODO: Daha performansli bir veri yapisinda saklanacaklar!!!
-    public final PriorityQueue<Input> inputBuffer = new PriorityQueue<>(
-        Comparator.comparingLong(Input::getClientTimestampOffset)
+    public final PriorityBlockingQueue<Input> inputBuffer = new PriorityBlockingQueue<>(
+        11, Comparator.comparingLong(Input::getClientTimestampOffset)
     );
     //En son hangi timestamp degeri islendi, lastServerTickEndTimestamp + TICK_RATE_IN_MS degeri koyulacak
     public Long lastServerTickEndTimestamp = 0L;
 
-    public Game() {
+    public Game(ChannelGroup channels) {
+        this.channels = channels;
         //TODO: Initialize body count limit eklenebilir.
         this.world = new World<>();
         this.world.setGravity(World.ZERO_GRAVITY);
-        //scheduler initialize
-        //TODO: !!! onServerTick icerisindeki islemler TICK_RATE_IN_MS'DEN fazla surerse, görevler üst üste binebilir.
-        this.tickScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r);
-            //Arkaplan isi olarak calistirir
-            t.setDaemon(false);
-            return t;
-        });
-        this.tickScheduler.scheduleAtFixedRate(
-            this::onServerTick,
-            0L,
-            TICK_RATE_IN_MS,
-            TimeUnit.MILLISECONDS
-        );
-
         // 2) Görselleştirme penceresini başlat
         SwingUtilities.invokeLater(this::initializeVisualization);
     }
@@ -76,11 +68,11 @@ public class Game {
             if (this.drawingPanel != null) {
                 this.drawingPanel.repaint();
             }
-        }, 0L, TICK_RATE_IN_MS, TimeUnit.MILLISECONDS);
+        }, 0L, 16, TimeUnit.MILLISECONDS);
     }
 
     public void addInput(Input input) {
-        if(input.getClientTimestampOffset() != null) {
+        if (input.getClientTimestampOffset() != null) {
             this.inputBuffer.offer(input);
         }
     }
@@ -94,12 +86,18 @@ public class Game {
             newPlayer.setName("test");
             newPlayer.setChannelId(gameEvent.getChannel().id().asLongText());
             this.playersByChannelId.put(gameEvent.getChannel().id().asLongText(), newPlayer);
+            Random rnd = new Random();
+            double randDouble = 0.1 + rnd.nextDouble() * (1.0 - 0.1);
             playerBody.addFixture(
-                Geometry.createCircle(0.5),
+                Geometry.createCircle(randDouble),
                 1.0,
-                0.4, 0.4
+                0.4,
+                0.4
             );
             playerBody.setMass(MassType.NORMAL);
+            playerBody.setEnabled(true);
+            playerBody.getTransform().setTranslation(new Vector2(10, 10));
+            playerBody.setAtRestDetectionEnabled(false);
             this.world.addBody(playerBody);
 
             return playerBody;
@@ -112,53 +110,82 @@ public class Game {
         if (ActionType.DISCONNECT.equals(gameEvent.getActionType())) {
             if (gameEvent.getChannel() != null) {
                 this.world.removeBody(this.playersByChannelId.get(gameEvent.getChannel().id().asLongText()).getBody());
+                this.playersByChannelId.remove(gameEvent.getChannel().id().asLongText());
             }
         }
     }
 
-    public void onServerTick() {
-        try {
-            long tickStart = System.currentTimeMillis();
-            double tickEnd = tickStart + TICK_RATE_IN_MS;
+    private void broadcastGameState(long timestampMs) {
+        //TODO: parametre ile gelen timestampMs ileride kullanilmasi gerekebilir!!!
+        GameStateOuterClass.GameState.Builder gs = GameStateOuterClass.GameState.newBuilder();
 
-            List<Input> toProcess;
-
-            calculatePhysics();
-        }catch (Exception e) {
+        for (Player p : playersByChannelId.values()) {
+            Body b = p.getBody();
+            Vector2 pos = b.getTransform().getTranslation();
+            Vector2 vel = b.getLinearVelocity();
+            gs.addEntities(
+                GameStateOuterClass.EntityState.newBuilder()
+                    .setId(p.getChannelId())
+                    .setX(pos.x).setY(pos.y)
+                    .setVx(vel.x).setVy(vel.y)
+                    .build()
+            );
         }
 
+        System.out.println(channels.size());
+
+        ByteBuf buf = Unpooled.wrappedBuffer(gs.build().toByteArray());
+        channels.writeAndFlush(new BinaryWebSocketFrame(buf));
     }
 
-    private void calculatePhysics() {
-        final double speed = 5;
-        long startTime = System.nanoTime();
-        while(!this.inputBuffer.isEmpty()) {
-            Input in = this.inputBuffer.poll();
-            Player player = playersByChannelId.get(in.getChannelId());
-            if (player != null) {
-                Body body = player.getBody();
-                if (body != null) {
-                    // --- Seçenek A: Sabit hız kullanmak (daha deterministik) ---
-                    body.setLinearVelocity(in.getDx() * speed, in.getDy() * speed);
+    @Override
+    public void run() {
+        double accumulator = 0.0;
+        double t = 0.0;
+        long lastTime = System.nanoTime();
+        long simulationStartTimeMs = System.currentTimeMillis();
 
-                    world.step(1, 0.016);
-                    // --- Seçenek B: Kuvvet ile ilerle (ancak bu durumda önce kuvvet ve hızı sıfırlamak gerekebilir) ---
-//                     body.setLinearVelocity(0, 0);
-//                     body.applyForce(new Vector2(in.getDx() * forceMagnitude, in.getDy() * forceMagnitude));
+        while(true){
 
+            long now = System.nanoTime();
+            double frameTime = (now - lastTime) / 1e9;
+            lastTime = now;
 
-                    //System.out.println("Pos: " + body.getTransform().getTranslation());
+            if(frameTime > 0.25) frameTime  = 0.25;
 
+            accumulator += frameTime;
+
+            while (accumulator >= DT) {
+                accumulator -= DT;
+                t  += DT;
+
+                long simTimeMs = simulationStartTimeMs + (long)(t * 1000);
+
+                Input in;
+                while ((in = inputBuffer.peek()) != null
+                       && in.getClientTimestampOffset() <= simTimeMs) {
+                    inputBuffer.poll();
+                    Player player = playersByChannelId.get(in.getChannelId());
+
+                    if (player != null) {
+                        Body body = player.getBody();
+
+                        body.setLinearVelocity(in.getDx() * 5, in.getDy() * 5);
+                    }
                 }
 
+                world.step(1, DT);
+                broadcastGameState(System.currentTimeMillis());
+            }
+
+            try {
+                //TODO: Thread, sleep 1 gercekten gerekli mi?
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
-
-        long endTime = System.nanoTime();
-
-        long durationNs = (endTime - startTime);
-
-        System.out.println(durationNs);
 
     }
 }

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package server;
+
+import "client/clientData.proto";
+import "client/ping.proto";
+
+message EntityState {
+  string id = 1;
+  double x  = 2;
+  double y  = 3;
+  double vx = 4;
+  double vy = 5;
+}
+
+message GameState {
+  client.ActionType actionType = 1;
+  repeated EntityState entities = 2;
+}

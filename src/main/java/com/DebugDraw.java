@@ -1,6 +1,8 @@
 package com;
 
 import org.dyn4j.dynamics.Body;
+import org.dyn4j.geometry.Circle;
+import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
 
 import java.awt.*;
@@ -14,14 +16,11 @@ public class DebugDraw {
     }
 
     public void render(Graphics2D g) {
-        // Basit bir örnek: her bodynin sabit daire şeklindeki fixture'ını çizelim
         g.setColor(Color.RED);
         for (Body body : this.world.getBodies()) {
-            // Pozisyon ve boyutu alın
             double x = body.getTransform().getTranslationX();
             double y = body.getTransform().getTranslationY();
-            // Burada sadece ilk fixture'ı daire olarak çiziyoruz:
-            double radius = 0.5; // örneğin
+            double radius = ((Circle)(body.getFixture(0).getShape())).getRadius();
             int px = (int) ((x - radius) * scale);
             int py = (int) ((y - radius) * scale);
             int diameter = (int)(radius * 2 * scale);

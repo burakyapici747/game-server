@@ -30,6 +30,20 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.19.0</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>4.31.1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/kr.motd.maven/os-maven-plugin -->
+        <dependency>
+            <groupId>kr.motd.maven</groupId>
+            <artifactId>os-maven-plugin</artifactId>
+            <version>1.7.1</version>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -38,4 +52,56 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <build>
+        <!-- ➊ OS classifier’ı alacağız (windows/linux/mac) -->
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.6.2</version>
+            </extension>
+        </extensions>
+
+        <plugins>
+            <!-- ➋ Protobuf jenerasyonu için plugin -->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <!-- Hangi protoc sürümünü indirecek ve hangi OS’e uyarlanacak -->
+                    <protocArtifact>
+                        com.google.protobuf:protoc:3.21.12:exe:${os.detected.classifier}
+                    </protocArtifact>
+                    <!-- .proto’lar burada aranacak -->
+                    <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+                    <!-- Üretilen Java kodları buraya yazılacak (IDE’ye eklemesi için) -->
+                    <outputDirectory>${project.build.directory}/generated-sources/protobuf/java</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- generate-sources aşamasında çalışsın -->
+                        <id>generate-proto-sources</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ➌ Projenizin diğer plugin’leri (örn. compiler) buraya gelir -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <generatedSourcesDirectory>
+                        ${project.build.directory}/generated-sources/protobuf/java
+                    </generatedSourcesDirectory>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

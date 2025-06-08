@@ -16,7 +16,7 @@ public class PlayerConnectEvent implements EventHandler<GameEvent> {
             gameEvent.getGame().playersByChannelId.put(gameEvent.getChannel().id().asLongText(), player);
 
             WebsocketServer.activePlayerMap.put(gameEvent.getChannel().id().toString(), player);
-            //System.out.println(WebsocketServer.activePlayerMap.size());
+            System.out.println(WebsocketServer.activePlayerMap.size());
         }
     }
 }
