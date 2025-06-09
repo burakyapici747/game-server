@@ -4,15 +4,15 @@ import com.event.ActionType;
 
 public class Input {
     private ActionType actionType;
-    private Float dx;
-    private Float dy;
+    private Double dx;
+    private Double dy;
     private Long sequenceId;
     private String channelId;
     private Long clientTimestampOffset;
 
     public Input() {}
 
-    public Input(ActionType actionType, Float dx, Float dy, Long sequenceId) {
+    public Input(ActionType actionType, Double dx, Double dy, Long sequenceId) {
         this.actionType = actionType;
         this.dx = dx;
         this.dy = dy;
@@ -23,11 +23,11 @@ public class Input {
         return actionType;
     }
 
-    public Float getDx() {
+    public Double getDx() {
         return dx;
     }
 
-    public Float getDy() {
+    public Double getDy() {
         return dy;
     }
 
@@ -39,11 +39,11 @@ public class Input {
         this.actionType = actionType;
     }
 
-    public void setDx(Float dx) {
+    public void setDx(Double dx) {
         this.dx = dx;
     }
 
-    public void setDy(Float dy) {
+    public void setDy(Double dy) {
         this.dy = dy;
     }
 

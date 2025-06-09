@@ -1,5 +1,6 @@
 package com.game;
 
+import client.ClientDataOuterClass;
 import com.DrawingPanel;
 import com.Player;
 import com.event.ActionType;
@@ -17,6 +18,8 @@ import org.dyn4j.world.World;
 import server.GameStateOuterClass;
 
 import javax.swing.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -115,7 +118,7 @@ public class Game implements Runnable{
         }
     }
 
-    private void broadcastGameState(long timestampMs) {
+    private void broadcastGameState(long timestampMs) throws IOException {
         //TODO: parametre ile gelen timestampMs ileride kullanilmasi gerekebilir!!!
         GameStateOuterClass.GameState.Builder gs = GameStateOuterClass.GameState.newBuilder();
 
@@ -132,10 +135,24 @@ public class Game implements Runnable{
             );
         }
 
-        System.out.println(channels.size());
+        GameStateOuterClass.GameState gameState = gs.build();
 
-        ByteBuf buf = Unpooled.wrappedBuffer(gs.build().toByteArray());
-        channels.writeAndFlush(new BinaryWebSocketFrame(buf));
+        // 2) ServerEnvelope içine sar
+        server.ServerEnvelopeOuterClass.ServerEnvelope envelope =
+            server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                .setActionType(ClientDataOuterClass.ActionType.GAME_STATE)
+                .setGameState(gameState)
+                .build();
+
+        // 3) writeDelimitedTo ile varint-prefix + içerik
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        envelope.writeDelimitedTo(baos);
+
+        // 4) ByteArrayOutputStream'i Netty ByteBuf'a çevir
+        ByteBuf payload = Unpooled.wrappedBuffer(baos.toByteArray());
+
+        // 5) BinaryWebSocketFrame ile tüm client'lara broadcast et
+        channels.writeAndFlush(new BinaryWebSocketFrame(payload));
     }
 
     @Override
@@ -175,7 +192,11 @@ public class Game implements Runnable{
                 }
 
                 world.step(1, DT);
-                broadcastGameState(System.currentTimeMillis());
+                try {
+                    broadcastGameState(System.currentTimeMillis());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             try {

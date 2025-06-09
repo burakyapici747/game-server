@@ -7,8 +7,8 @@ public class GameEvent {
     private final Game game;
     private ActionType actionType;
     private Channel channel;
-    private Float dx;
-    private Float dy;
+    private Double dx;
+    private Double dy;
     private Long sequenceId;
     private Long clientTimestampOffset;
 
@@ -16,19 +16,19 @@ public class GameEvent {
         this.game = game;
     }
 
-    public Float getDx() {
+    public Double getDx() {
         return dx;
     }
 
-    public void setDx(Float dx) {
+    public void setDx(Double dx) {
         this.dx = dx;
     }
 
-    public Float getDy() {
+    public Double getDy() {
         return dy;
     }
 
-    public void setDy(Float dy) {
+    public void setDy(Double dy) {
         this.dy = dy;
     }
 

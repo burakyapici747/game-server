@@ -1,78 +1,76 @@
 package com.server;
 
+import client.ClientDataOuterClass;
 import com.event.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lmax.disruptor.RingBuffer;
 import com.util.GameEventMapper;
+import envelope.EnvelopeOuterClass;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
-import java.util.List;
-
-public class WebsocketFrameHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
+public class WebsocketFrameHandler extends SimpleChannelInboundHandler<envelope.EnvelopeOuterClass.Envelope> {
     private final RingBuffer<GameEvent> ringBuffer;
-    private final ObjectMapper objectMapper;
 
-    public WebsocketFrameHandler(RingBuffer<GameEvent> ringBuffer, ObjectMapper objectMapper) {
+    public WebsocketFrameHandler(RingBuffer<GameEvent> ringBuffer) {
         this.ringBuffer = ringBuffer;
-        this.objectMapper = objectMapper;
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame frame) throws Exception {
-        String message = frame.text();
-        SmallGameEvent smallGameEvent = objectMapper.readValue(message, SmallGameEvent.class);
-
-        smallGameEvent.setChannel(ctx.channel());
-        long currentTime = System.currentTimeMillis();
-        long currentTimeOffset = Math.abs(currentTime - smallGameEvent.getClientTimestampOffset());
-
-        //System.out.println(smallGameEvent.getClientTimestampOffset()  + " currentTimeoffset " + currentTimeOffset);
-        publishToDisruptor(smallGameEvent);
+    protected void channelRead0(ChannelHandlerContext ctx, EnvelopeOuterClass.Envelope envelope) {
+        switch (envelope.getPayloadCase()) {
+            case CLIENTDATA -> {
+                publishToDisruptor(envelope.getClientData(), ctx.channel());
+            }
+            default -> {
+                //TODO: Move ve ping disinda client'dan gelecek farkli tiplerdeki mesajlar buraya duser...
+                System.out.println("PING VE MOVE DISINDA CLIENT'DAN BIR PAKET GELDI!!!");
+            }
+        }
     }
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         super.handlerAdded(ctx);
-
-        SmallGameEvent smallGameEvent = new SmallGameEvent();
-        smallGameEvent.setActionType(ActionType.CONNECT);
-        smallGameEvent.setChannel(ctx.channel());
-        publishToDisruptor(smallGameEvent);
+        publishToDisruptorForConnectedUser(ctx.channel());
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         super.handlerRemoved(ctx);
-
-        SmallGameEvent smallGameEvent = new SmallGameEvent();
-        smallGameEvent.setActionType(ActionType.DISCONNECT);
-        smallGameEvent.setChannel(ctx.channel());
-        publishToDisruptor(smallGameEvent);
+        publishToDisruptorForDisconnectedUser(ctx.channel());
     }
 
-    private void publishToDisruptor(SmallGameEvent smallGameEvent) {
+    private void publishToDisruptorForConnectedUser(Channel channel) {
         long sequence = ringBuffer.next();
         try {
             GameEvent event = ringBuffer.get(sequence);
-            GameEventMapper.toGameEvent(smallGameEvent, event);
+            event.setActionType(ActionType.CONNECT);
+            event.setChannel(channel);
         } finally {
             ringBuffer.publish(sequence);
         }
     }
 
-    private void publishToDisruptor(List<SmallGameEvent> smallGameEvent) {
-        for (SmallGameEvent gameEvent : smallGameEvent) {
-            long sequence = ringBuffer.next();
-            try {
-                GameEvent event = ringBuffer.get(sequence);
-                GameEventMapper.toGameEvent(gameEvent, event);
-            } finally {
-                ringBuffer.publish(sequence);
-            }
+    private void publishToDisruptorForDisconnectedUser(Channel channel) {
+        long sequence = ringBuffer.next();
+        try {
+            GameEvent event = ringBuffer.get(sequence);
+            event.setActionType(ActionType.DISCONNECT);
+            event.setChannel(channel);
+        } finally {
+            ringBuffer.publish(sequence);
         }
+    }
 
+    private void publishToDisruptor(ClientDataOuterClass.ClientData clientData, Channel channel) {
+        long sequence = ringBuffer.next();
+        try {
+            GameEvent event = ringBuffer.get(sequence);
+            GameEventMapper.toGameEvent(clientData, event, channel);
+        } finally {
+            ringBuffer.publish(sequence);
+        }
     }
 
 }

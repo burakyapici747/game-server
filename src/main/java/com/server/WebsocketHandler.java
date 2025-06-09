@@ -12,7 +12,6 @@ public class WebsocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
         this.channels = channels;
     }
 
-
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, BinaryWebSocketFrame frame) throws Exception {
         // retain() so downstream handlers can release it when they’re done

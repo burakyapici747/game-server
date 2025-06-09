@@ -13,5 +13,4 @@ message ServerEnvelope {
     server.GameState gameState = 2;
     server.PongData pongData = 3;
   }
-
 }

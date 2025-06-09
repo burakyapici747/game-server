@@ -1,6 +1,5 @@
 package com.server;
 
-import client.ClientDataOuterClass;
 import com.Player;
 import com.event.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +18,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
@@ -61,13 +59,14 @@ public class WebsocketServer {
                     ChannelPipeline pipeline = socketChannel.pipeline();
                     ObjectMapper objectMapper = new ObjectMapper();
 
-                    WebsocketFrameHandler websocketFrameHandler = new WebsocketFrameHandler(ringBuffer, objectMapper);
+                    WebsocketFrameHandler websocketFrameHandler = new WebsocketFrameHandler(ringBuffer);
                     PingPongHandler pingPongHandler = new PingPongHandler();
 
                     //websocket destekli pipeline yapilandirmasi
                     pipeline.addLast(new HttpServerCodec());
                     pipeline.addLast(new HttpObjectAggregator(65536));//Websocket handshake islemleri icin gerekli
                     pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));//websocket upgrade ve frame yonetimi
+                    //pipeline.addLast(new LoggingHandler(LogLevel.INFO));
                     pipeline.addLast(new WebsocketHandler(channels));
                     pipeline.addLast(new ProtobufVarint32FrameDecoder());
                     pipeline.addLast(new ProtobufDecoder(EnvelopeOuterClass.Envelope.getDefaultInstance()));
@@ -92,7 +91,6 @@ public class WebsocketServer {
 
     private void setupDisruptor() {
         //GameEvent icerisinde kullanmak uzere bir Game referansi olusturuldu
-        ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
         Game game = new Game(channels);
         Thread th = new Thread(game);
         th.start();
