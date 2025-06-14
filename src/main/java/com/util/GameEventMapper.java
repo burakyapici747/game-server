@@ -15,8 +15,9 @@ public final class GameEventMapper {
             target.setChannel(channel);
             target.setDx(clientData.getDx());
             target.setDy(clientData.getDy());
-            target.setSequenceId((long) clientData.getSequenceId());
+            target.setSequenceId(clientData.getSequenceId());
             target.setClientTimestampOffset(clientData.getTimestamp());
+            target.setDeltaTime(clientData.getDeltaTime());
         }
     }
 

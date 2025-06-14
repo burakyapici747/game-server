@@ -23,7 +23,6 @@ public class PingPongHandler extends SimpleChannelInboundHandler<EnvelopeOuterCl
         switch (env.getPayloadCase()) {
             case PINGDATA -> {
                 var pingData = env.getPingData();
-
                 Pong.PongData pongData = Pong.PongData.newBuilder()
                         .setActionType(ClientDataOuterClass.ActionType.PONG)
                         .setServerTimestamp(System.currentTimeMillis())
@@ -42,6 +41,7 @@ public class PingPongHandler extends SimpleChannelInboundHandler<EnvelopeOuterCl
 
                 ByteBuf buf = Unpooled.wrappedBuffer(baos.toByteArray());
                 ctx.writeAndFlush(new BinaryWebSocketFrame(buf));
+
             }
             default -> {
                 ctx.fireChannelRead(env);

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package client;
 
-import "client/clientData.proto";
+import "client/client-data.proto";
 
 message PingData {
   client.ActionType actionType = 1;

@@ -9,8 +9,9 @@ public class GameEvent {
     private Channel channel;
     private Double dx;
     private Double dy;
-    private Long sequenceId;
+    private Integer sequenceId;
     private Long clientTimestampOffset;
+    private float deltaTime;
 
     public GameEvent(Game game) {
         this.game = game;
@@ -48,11 +49,11 @@ public class GameEvent {
         this.channel = channel;
     }
 
-    public Long getSequenceId() {
+    public Integer getSequenceId() {
         return sequenceId;
     }
 
-    public void setSequenceId(Long sequenceId) {
+    public void setSequenceId(Integer sequenceId) {
         this.sequenceId = sequenceId;
     }
 
@@ -66,6 +67,14 @@ public class GameEvent {
 
     public void setClientTimestampOffset(Long clientTimestampOffset) {
         this.clientTimestampOffset = clientTimestampOffset;
+    }
+
+    public float getDeltaTime() {
+        return this.deltaTime;
+    }
+
+    public void setDeltaTime(float deltaTime) {
+        this.deltaTime = deltaTime;
     }
 }
 

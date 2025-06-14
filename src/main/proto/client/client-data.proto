@@ -12,6 +12,7 @@ enum ActionType{
     PING = 6;
     PONG = 7;
     GAME_STATE = 8;
+    START_LOCATION = 9;
 }
 
 message ClientData {
@@ -19,5 +20,6 @@ message ClientData {
   int64 timestamp = 2;
   double dx = 3;
   double dy = 4;
-  int32 sequence_id = 5;
+  float deltaTime = 5;
+  int32 sequence_id = 6;
 }

@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package envelope;
 
-import "client/clientData.proto";
-import "client/ping.proto";
+import "client/client-data.proto";
+import "client/ping-data.proto";
 
 message Envelope {
   oneof payload {

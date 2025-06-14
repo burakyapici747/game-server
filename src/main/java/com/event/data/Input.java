@@ -6,13 +6,15 @@ public class Input {
     private ActionType actionType;
     private Double dx;
     private Double dy;
-    private Long sequenceId;
+    private Integer sequenceId;
     private String channelId;
     private Long clientTimestampOffset;
+    private float deltaTime;
 
-    public Input() {}
+    public Input() {
+    }
 
-    public Input(ActionType actionType, Double dx, Double dy, Long sequenceId) {
+    public Input(ActionType actionType, Double dx, Double dy, Integer sequenceId) {
         this.actionType = actionType;
         this.dx = dx;
         this.dy = dy;
@@ -31,7 +33,7 @@ public class Input {
         return dy;
     }
 
-    public Long getSequenceId() {
+    public Integer getSequenceId() {
         return sequenceId;
     }
 
@@ -47,7 +49,7 @@ public class Input {
         this.dy = dy;
     }
 
-    public void setSequenceId(Long sequenceId) {
+    public void setSequenceId(Integer sequenceId) {
         this.sequenceId = sequenceId;
     }
 
@@ -65,5 +67,13 @@ public class Input {
 
     public void setClientTimestampOffset(Long clientTimestampOffset) {
         this.clientTimestampOffset = clientTimestampOffset;
+    }
+
+    public float getDeltaTime() {
+        return deltaTime;
+    }
+
+    public void setDeltaTime(float deltaTime) {
+        this.deltaTime = deltaTime;
     }
 }

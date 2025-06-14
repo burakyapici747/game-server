@@ -6,5 +6,8 @@ public class PlayerInputEvent implements EventHandler<GameEvent> {
     @Override
     public void onEvent(GameEvent gameEvent, long l, boolean b) throws Exception {
         //TODO: Burada aykiri degerler temizlenebilir!!!
+        if(ActionType.MOVE.equals(gameEvent.getActionType())) {
+            gameEvent.setDy(gameEvent.getDy() * -1);
+        }
     }
 }

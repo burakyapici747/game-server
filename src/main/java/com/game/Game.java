@@ -8,14 +8,18 @@ import com.event.GameEvent;
 import com.event.data.Input;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.geometry.Geometry;
 import org.dyn4j.geometry.MassType;
+import org.dyn4j.geometry.Rectangle;
 import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
+import server.ClientStateOuterClass;
 import server.GameStateOuterClass;
+import server.StartLocationOuterClass;
 
 import javax.swing.*;
 import java.io.ByteArrayOutputStream;
@@ -23,7 +27,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class Game implements Runnable{
+public class Game implements Runnable {
     private final double DT = 1 / 60.0;
     private final World<Body> world;
     private final ChannelGroup channels;
@@ -36,7 +40,7 @@ public class Game implements Runnable{
 
     //TODO: Daha performansli bir veri yapisinda saklanacaklar!!!
     public final PriorityBlockingQueue<Input> inputBuffer = new PriorityBlockingQueue<>(
-        11, Comparator.comparingLong(Input::getClientTimestampOffset)
+            11, Comparator.comparingLong(Input::getClientTimestampOffset)
     );
     //En son hangi timestamp degeri islendi, lastServerTickEndTimestamp + TICK_RATE_IN_MS degeri koyulacak
     public Long lastServerTickEndTimestamp = 0L;
@@ -46,23 +50,46 @@ public class Game implements Runnable{
         //TODO: Initialize body count limit eklenebilir.
         this.world = new World<>();
         this.world.setGravity(World.ZERO_GRAVITY);
+        // createBoundedMap(world, 1000.0, 1000.0, 1.0);
         // 2) Görselleştirme penceresini başlat
         SwingUtilities.invokeLater(this::initializeVisualization);
     }
 
+    private void createBoundedMap(World<Body> world, double width, double height, double thickness) {
+        Body floor = new Body();
+        floor.addFixture(new Rectangle(width + 2 * thickness, thickness));
+        floor.translate(0, height);
+        floor.setMass(MassType.INFINITE);
+        world.addBody(floor);
+
+        Body ceiling = new Body();
+        ceiling.addFixture(new Rectangle(width + 2 * thickness, thickness));
+        ceiling.translate(0, 0);
+        ceiling.setMass(MassType.INFINITE);
+        world.addBody(ceiling);
+
+        Body leftWall = new Body();
+        leftWall.addFixture(new Rectangle(thickness, height));
+        leftWall.translate(0, 0);
+        leftWall.setMass(MassType.INFINITE);
+        world.addBody(leftWall);
+
+        Body rightWall = new Body();
+        rightWall.addFixture(new Rectangle(thickness, height));
+        rightWall.getTransform().setTranslation(width, 0);
+        rightWall.setMass(MassType.INFINITE);
+        world.addBody(rightWall);
+    }
+
     private void initializeVisualization() {
-        // JFrame oluştur
         this.frame = new JFrame("Game Physics Viewer");
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // Dyn4j World’u gören bir DrawingPanel ekle
         this.drawingPanel = new DrawingPanel(this.world);
         this.frame.add(this.drawingPanel);
         this.frame.pack();
         this.frame.setLocationRelativeTo(null);
         this.frame.setVisible(true);
 
-        // Her tick sonrasında panel’i tekrar çiz (repaint) et
-        // Bunu da ayrı bir scheduler ya da aynı tickScheduler içine ekleyebilirsiniz:
         Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setDaemon(false);
@@ -81,32 +108,53 @@ public class Game implements Runnable{
     }
 
     public Body addPlayer(GameEvent gameEvent) {
-        Body playerBody = new Body();
+        try {
+            Body playerBody = new Body();
 
-        if (ActionType.CONNECT.equals(gameEvent.getActionType())) {
-            Player newPlayer = new Player();
-            newPlayer.setBody(playerBody);
-            newPlayer.setName("test");
-            newPlayer.setChannelId(gameEvent.getChannel().id().asLongText());
-            this.playersByChannelId.put(gameEvent.getChannel().id().asLongText(), newPlayer);
-            Random rnd = new Random();
-            double randDouble = 0.1 + rnd.nextDouble() * (1.0 - 0.1);
-            playerBody.addFixture(
-                Geometry.createCircle(randDouble),
-                1.0,
-                0.4,
-                0.4
-            );
-            playerBody.setMass(MassType.NORMAL);
-            playerBody.setEnabled(true);
-            playerBody.getTransform().setTranslation(new Vector2(10, 10));
-            playerBody.setAtRestDetectionEnabled(false);
-            this.world.addBody(playerBody);
-
-            return playerBody;
+            if (ActionType.CONNECT.equals(gameEvent.getActionType())) {
+                Player newPlayer = new Player();
+                newPlayer.setBody(playerBody);
+                newPlayer.setName("test");
+                newPlayer.setChannelId(gameEvent.getChannel().id().asLongText());
+                this.playersByChannelId.put(gameEvent.getChannel().id().asLongText(), newPlayer);
+                playerBody.addFixture(
+                        Geometry.createCircle(0.3),
+                        1.0,
+                        0.4,
+                        0.4
+                );
+                playerBody.setMass(MassType.NORMAL);
+                playerBody.setEnabled(true);
+                sendStartLocationToPlayer(gameEvent.getChannel(), 5, 5);
+                playerBody.getTransform().setTranslation(new Vector2(5, 5));
+                playerBody.setAtRestDetectionEnabled(false);
+                this.world.addBody(playerBody);
+                return playerBody;
+            }
+        } catch (Exception e) {
+            return null;
         }
-
         return null;
+    }
+
+    private void sendStartLocationToPlayer(Channel channel, double x, double y) throws IOException {
+        if (channel != null) {
+            StartLocationOuterClass.StartLocation.Builder startLocationBuilder = StartLocationOuterClass.StartLocation.newBuilder();
+            startLocationBuilder.setX(x);
+            startLocationBuilder.setY(y);
+
+            server.ServerEnvelopeOuterClass.ServerEnvelope envelope =
+                    server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                            .setActionType(ClientDataOuterClass.ActionType.START_LOCATION)
+                            .setStartLocation(startLocationBuilder.build())
+                            .build();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            envelope.writeDelimitedTo(baos);
+
+            ByteBuf payload = Unpooled.wrappedBuffer(baos.toByteArray());
+            channel.writeAndFlush(new BinaryWebSocketFrame(payload));
+        }
     }
 
     public void removePlayer(GameEvent gameEvent) {
@@ -121,37 +169,36 @@ public class Game implements Runnable{
     private void broadcastGameState(long timestampMs) throws IOException {
         //TODO: parametre ile gelen timestampMs ileride kullanilmasi gerekebilir!!!
         GameStateOuterClass.GameState.Builder gs = GameStateOuterClass.GameState.newBuilder();
-
         for (Player p : playersByChannelId.values()) {
             Body b = p.getBody();
             Vector2 pos = b.getTransform().getTranslation();
             Vector2 vel = b.getLinearVelocity();
             gs.addEntities(
-                GameStateOuterClass.EntityState.newBuilder()
-                    .setId(p.getChannelId())
-                    .setX(pos.x).setY(pos.y)
-                    .setVx(vel.x).setVy(vel.y)
-                    .build()
+                    GameStateOuterClass.EntityState.newBuilder()
+                            .setId(p.getChannelId())
+                            .setX(pos.x).setY(pos.y)
+                            .setVx(vel.x).setVy(vel.y)
+                            .build()
             );
+            ClientStateOuterClass.ClientState clientState = ClientStateOuterClass.ClientState.newBuilder()
+                    .setX(pos.x)
+                    .setY(pos.y)
+                    .setLastProcessedSequenceId(p.getLastProcessedSequenceId())
+                    .build();
+            gs.setClientState(clientState);
         }
 
         GameStateOuterClass.GameState gameState = gs.build();
 
-        // 2) ServerEnvelope içine sar
         server.ServerEnvelopeOuterClass.ServerEnvelope envelope =
-            server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
-                .setActionType(ClientDataOuterClass.ActionType.GAME_STATE)
-                .setGameState(gameState)
-                .build();
+                server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                        .setActionType(ClientDataOuterClass.ActionType.GAME_STATE)
+                        .setGameState(gameState)
+                        .build();
 
-        // 3) writeDelimitedTo ile varint-prefix + içerik
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         envelope.writeDelimitedTo(baos);
-
-        // 4) ByteArrayOutputStream'i Netty ByteBuf'a çevir
         ByteBuf payload = Unpooled.wrappedBuffer(baos.toByteArray());
-
-        // 5) BinaryWebSocketFrame ile tüm client'lara broadcast et
         channels.writeAndFlush(new BinaryWebSocketFrame(payload));
     }
 
@@ -161,33 +208,39 @@ public class Game implements Runnable{
         double t = 0.0;
         long lastTime = System.nanoTime();
         long simulationStartTimeMs = System.currentTimeMillis();
-
-        while(true){
-
+        while (true) {
             long now = System.nanoTime();
             double frameTime = (now - lastTime) / 1e9;
             lastTime = now;
 
-            if(frameTime > 0.25) frameTime  = 0.25;
-
+            if (frameTime > 0.25) frameTime = 0.25;
             accumulator += frameTime;
 
             while (accumulator >= DT) {
                 accumulator -= DT;
-                t  += DT;
-
-                long simTimeMs = simulationStartTimeMs + (long)(t * 1000);
-
+                t += DT;
+                long simTimeMs = simulationStartTimeMs + (long) (t * 1000);
                 Input in;
                 while ((in = inputBuffer.peek()) != null
-                       && in.getClientTimestampOffset() <= simTimeMs) {
+                        && in.getClientTimestampOffset() <= simTimeMs) {
                     inputBuffer.poll();
                     Player player = playersByChannelId.get(in.getChannelId());
 
                     if (player != null) {
                         Body body = player.getBody();
+                        Vector2 currentPosition = body.getTransform().getTranslation();
+                        Vector2 direction = new Vector2(in.getDx(), in.getDy());
+                        if (!direction.isZero()) {
+                            direction.normalize();
+                        }
 
-                        body.setLinearVelocity(in.getDx() * 5, in.getDy() * 5);
+                        double speed = 5.0;
+                        Vector2 displacement = direction.multiply(speed * in.getDeltaTime());
+                        Vector2 newPosition = currentPosition.add(displacement);
+                        body.getTransform().setTranslation(newPosition);
+
+                        //set player's last processedSequenceId
+                        player.setLastProcessedSequenceId(in.getSequenceId());
                     }
                 }
 

@@ -6,6 +6,7 @@ public class Player {
     private String channelId;
     private String name;
     private Body body;
+    private Integer lastProcessedSequenceId;
 
     public String getChannelId() {
         return channelId;
@@ -29,5 +30,13 @@ public class Player {
 
     public void setBody(Body body) {
         this.body = body;
+    }
+
+    public Integer getLastProcessedSequenceId() {
+        return lastProcessedSequenceId;
+    }
+
+    public void setLastProcessedSequenceId(Integer lastProcessedSequenceId) {
+        this.lastProcessedSequenceId = lastProcessedSequenceId;
     }
 }
