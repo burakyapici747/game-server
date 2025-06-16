@@ -144,10 +144,10 @@ public class Game implements Runnable {
             startLocationBuilder.setY(y);
 
             server.ServerEnvelopeOuterClass.ServerEnvelope envelope =
-                    server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
-                            .setActionType(ClientDataOuterClass.ActionType.START_LOCATION)
-                            .setStartLocation(startLocationBuilder.build())
-                            .build();
+                server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                    .setActionType(ClientDataOuterClass.ActionType.START_LOCATION)
+                    .setStartLocation(startLocationBuilder.build())
+                    .build();
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             envelope.writeDelimitedTo(baos);
@@ -180,6 +180,7 @@ public class Game implements Runnable {
                             .setVx(vel.x).setVy(vel.y)
                             .build()
             );
+            //TODO: Burada ilgili client'a gitme durumu eziliyor, dongunun son elemani tarafindan ezilmis oluyor yani
             ClientStateOuterClass.ClientState clientState = ClientStateOuterClass.ClientState.newBuilder()
                     .setX(pos.x)
                     .setY(pos.y)
@@ -235,7 +236,7 @@ public class Game implements Runnable {
                         }
 
                         double speed = 5.0;
-                        Vector2 displacement = direction.multiply(speed * in.getDeltaTime());
+                        Vector2 displacement = direction.multiply(speed * DT);
                         Vector2 newPosition = currentPosition.add(displacement);
                         body.getTransform().setTranslation(newPosition);
 
