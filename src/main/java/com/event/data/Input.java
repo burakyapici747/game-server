@@ -76,4 +76,17 @@ public class Input {
     public void setDeltaTime(float deltaTime) {
         this.deltaTime = deltaTime;
     }
+
+    @Override
+    public String toString() {
+        return "Input{" +
+                "actionType=" + actionType +
+                ", dx=" + dx +
+                ", dy=" + dy +
+                ", sequenceId=" + sequenceId +
+                ", channelId='" + channelId + '\'' +
+                ", clientTimestampOffset=" + clientTimestampOffset +
+                ", deltaTime=" + deltaTime +
+                '}';
+    }
 }

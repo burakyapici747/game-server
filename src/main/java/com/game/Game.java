@@ -40,7 +40,7 @@ public class Game implements Runnable {
 
     //TODO: Daha performansli bir veri yapisinda saklanacaklar!!!
     public final PriorityBlockingQueue<Input> inputBuffer = new PriorityBlockingQueue<>(
-            11, Comparator.comparingLong(Input::getClientTimestampOffset)
+            11, Comparator.comparingLong(Input::getSequenceId)
     );
     //En son hangi timestamp degeri islendi, lastServerTickEndTimestamp + TICK_RATE_IN_MS degeri koyulacak
     public Long lastServerTickEndTimestamp = 0L;
@@ -221,6 +221,7 @@ public class Game implements Runnable {
                 accumulator -= DT;
                 t += DT;
                 long simTimeMs = simulationStartTimeMs + (long) (t * 1000);
+
                 Input in;
                 while ((in = inputBuffer.peek()) != null
                         && in.getClientTimestampOffset() <= simTimeMs) {
@@ -236,9 +237,11 @@ public class Game implements Runnable {
                         }
 
                         double speed = 5.0;
-                        Vector2 displacement = direction.multiply(speed * DT);
-                        Vector2 newPosition = currentPosition.add(displacement);
-                        body.getTransform().setTranslation(newPosition);
+                        body.setLinearVelocity(direction.multiply(speed));
+//                        Vector2 displacement = direction.multiply(speed);
+//                        Vector2 newPosition = currentPosition.add(displacement);
+//                        body.getTransform().setTranslation(newPosition);
+                        //System.out.println(body.getTransform().getTranslation());
 
                         //set player's last processedSequenceId
                         player.setLastProcessedSequenceId(in.getSequenceId());
@@ -246,6 +249,7 @@ public class Game implements Runnable {
                 }
 
                 world.step(1, DT);
+
                 try {
                     broadcastGameState(System.currentTimeMillis());
                 } catch (IOException e) {
