@@ -26,7 +26,7 @@ public class DebugDraw {
                 int py = (int) ((y - radius) * scale);
                 int diameter = (int) (radius * 2 * scale);
                 g.fillOval(px, py, diameter, diameter);
-                g.drawString("[" + x + "," + y + "]", px, py);
+                g.drawString("[" + body.getTransform().getTranslationX() + "," + body.getTransform().getTranslationY() + "]", px, py);
             }
         }
     }

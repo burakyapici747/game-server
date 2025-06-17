@@ -144,10 +144,10 @@ public class Game implements Runnable {
             startLocationBuilder.setY(y);
 
             server.ServerEnvelopeOuterClass.ServerEnvelope envelope =
-                server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
-                    .setActionType(ClientDataOuterClass.ActionType.START_LOCATION)
-                    .setStartLocation(startLocationBuilder.build())
-                    .build();
+                    server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                            .setActionType(ClientDataOuterClass.ActionType.START_LOCATION)
+                            .setStartLocation(startLocationBuilder.build())
+                            .build();
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             envelope.writeDelimitedTo(baos);
@@ -223,14 +223,11 @@ public class Game implements Runnable {
                 long simTimeMs = simulationStartTimeMs + (long) (t * 1000);
 
                 Input in;
-                while ((in = inputBuffer.peek()) != null
-                        && in.getClientTimestampOffset() <= simTimeMs) {
+                while ((in = inputBuffer.peek()) != null && in.getClientTimestampOffset() <= simTimeMs) {
                     inputBuffer.poll();
                     Player player = playersByChannelId.get(in.getChannelId());
-
                     if (player != null) {
                         Body body = player.getBody();
-                        Vector2 currentPosition = body.getTransform().getTranslation();
                         Vector2 direction = new Vector2(in.getDx(), in.getDy());
                         if (!direction.isZero()) {
                             direction.normalize();
@@ -238,10 +235,6 @@ public class Game implements Runnable {
 
                         double speed = 5.0;
                         body.setLinearVelocity(direction.multiply(speed));
-//                        Vector2 displacement = direction.multiply(speed);
-//                        Vector2 newPosition = currentPosition.add(displacement);
-//                        body.getTransform().setTranslation(newPosition);
-                        //System.out.println(body.getTransform().getTranslation());
 
                         //set player's last processedSequenceId
                         player.setLastProcessedSequenceId(in.getSequenceId());
