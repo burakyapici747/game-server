@@ -4,7 +4,6 @@ package server;
 
 import "client/client-data.proto";
 import "client/ping-data.proto";
-import "server/client-state.proto";
 
 message EntityState {
   string id = 1;
@@ -17,5 +16,4 @@ message EntityState {
 message GameState {
   client.ActionType actionType = 1;
   repeated EntityState entities = 2;
-  ClientState clientState = 3;
 }

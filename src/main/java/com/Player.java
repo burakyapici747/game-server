@@ -1,19 +1,22 @@
 package com;
 
+import io.netty.channel.Channel;
 import org.dyn4j.dynamics.Body;
 
+
 public class Player {
-    private String channelId;
+    private Channel channel;
     private String name;
     private Body body;
     private int lastProcessedSequenceId;
+    private short rotateAngle;
 
-    public String getChannelId() {
-        return channelId;
+    public Channel getChannel() {
+        return channel;
     }
 
-    public void setChannelId(String channelId) {
-        this.channelId = channelId;
+    public void setChannel(Channel channel) {
+        this.channel = channel;
     }
 
     public String getName() {
@@ -38,5 +41,13 @@ public class Player {
 
     public void setLastProcessedSequenceId(int lastProcessedSequenceId) {
         this.lastProcessedSequenceId = lastProcessedSequenceId;
+    }
+
+    public short getRotateAngle() {
+        return rotateAngle;
+    }
+
+    public void setRotateAngle(short rotateAngle) {
+        this.rotateAngle = rotateAngle;
     }
 }

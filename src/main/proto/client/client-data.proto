@@ -13,13 +13,12 @@ enum ActionType{
     PONG = 7;
     GAME_STATE = 8;
     START_LOCATION = 9;
+    CLIENT_STATE = 10;
 }
 
 message ClientData {
   ActionType action_type = 1;
-  int64 timestamp = 2;
-  double dx = 3;
-  double dy = 4;
-  float deltaTime = 5;
-  int32 sequence_id = 6;
+  uint32 rotateAngle = 2;
+  int64 timestamp = 3;
+  int32 sequence_id = 4;
 }

@@ -7,30 +7,12 @@ public class GameEvent {
     private final Game game;
     private ActionType actionType;
     private Channel channel;
-    private Double dx;
-    private Double dy;
     private Integer sequenceId;
     private Long clientTimestampOffset;
-    private float deltaTime;
+    private short rotateAngle;
 
     public GameEvent(Game game) {
         this.game = game;
-    }
-
-    public Double getDx() {
-        return dx;
-    }
-
-    public void setDx(Double dx) {
-        this.dx = dx;
-    }
-
-    public Double getDy() {
-        return dy;
-    }
-
-    public void setDy(Double dy) {
-        this.dy = dy;
     }
 
     public ActionType getActionType() {
@@ -69,12 +51,12 @@ public class GameEvent {
         this.clientTimestampOffset = clientTimestampOffset;
     }
 
-    public float getDeltaTime() {
-        return this.deltaTime;
+    public short getRotateAngle() {
+        return rotateAngle;
     }
 
-    public void setDeltaTime(float deltaTime) {
-        this.deltaTime = deltaTime;
+    public void setRotateAngle(short rotateAngle) {
+        this.rotateAngle = rotateAngle;
     }
 }
 

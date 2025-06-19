@@ -9,7 +9,7 @@ public class PlayerConnectEvent implements EventHandler<GameEvent> {
     public void onEvent(GameEvent gameEvent, long l, boolean b) {
         if (gameEvent != null && ActionType.CONNECT.equals(gameEvent.getActionType())) {
             Player player = new Player();
-            player.setChannelId(gameEvent.getChannel().id().asLongText());
+            player.setChannel(gameEvent.getChannel());
             player.setName(gameEvent.getChannel().id().asLongText());
             player.setBody(gameEvent.getGame().addPlayer(gameEvent));
             gameEvent.getGame().playersByChannelId.put(gameEvent.getChannel().id().asLongText(), player);

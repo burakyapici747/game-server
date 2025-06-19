@@ -13,11 +13,9 @@ public final class GameEventMapper {
         if (clientData != null && target != null) {
             target.setActionType(convertProtoActionTypeToLocalActionType(clientData.getActionType()));
             target.setChannel(channel);
-            target.setDx(clientData.getDx());
-            target.setDy(clientData.getDy());
+            target.setRotateAngle((short) clientData.getRotateAngle());
             target.setSequenceId(clientData.getSequenceId());
             target.setClientTimestampOffset(clientData.getTimestamp());
-            target.setDeltaTime(clientData.getDeltaTime());
         }
     }
 
