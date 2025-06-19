@@ -28,11 +28,10 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class Game implements Runnable {
-    private final double DT = 1 / 60.0;
+    private final double DT = 1 / 64.0;
     private final World<Body> world;
     private final ChannelGroup channels;
     public final Map<String, Player> playersByChannelId = new ConcurrentHashMap<>();
-
 
     // Yeni: Görselleştirme için Swing bileşenleri
     private JFrame frame;
@@ -115,7 +114,7 @@ public class Game implements Runnable {
                 Player newPlayer = new Player();
                 newPlayer.setBody(playerBody);
                 newPlayer.setName("test");
-                newPlayer.setChannelId(gameEvent.getChannel().id().asLongText());
+                newPlayer.setChannel(gameEvent.getChannel());
                 this.playersByChannelId.put(gameEvent.getChannel().id().asLongText(), newPlayer);
                 playerBody.addFixture(
                         Geometry.createCircle(0.3),
@@ -157,6 +156,28 @@ public class Game implements Runnable {
         }
     }
 
+    private void sendClientData(Player player) throws IOException {
+        if (player != null && player.getBody() != null && player.getChannel() != null) {
+            Vector2 pos = player.getBody().getTransform().getTranslation();
+            ClientStateOuterClass.ClientState clientState = ClientStateOuterClass.ClientState.newBuilder()
+                    .setX(pos.x)
+                    .setY(pos.y)
+                    .setLastProcessedSequenceId(player.getLastProcessedSequenceId())
+                    .build();
+
+            server.ServerEnvelopeOuterClass.ServerEnvelope envelope =
+                    server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                            .setActionType(ClientDataOuterClass.ActionType.CLIENT_STATE)
+                            .setClientState(clientState)
+                            .build();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            envelope.writeDelimitedTo(baos);
+            ByteBuf payload = Unpooled.wrappedBuffer(baos.toByteArray());
+            player.getChannel().writeAndFlush(new BinaryWebSocketFrame(payload));
+        }
+    }
+
     public void removePlayer(GameEvent gameEvent) {
         if (ActionType.DISCONNECT.equals(gameEvent.getActionType())) {
             if (gameEvent.getChannel() != null) {
@@ -166,28 +187,29 @@ public class Game implements Runnable {
         }
     }
 
-    private void broadcastGameState(long timestampMs) throws IOException {
+    private void broadcastGameState(long timestampMs) throws IOException, InterruptedException {
         //TODO: parametre ile gelen timestampMs ileride kullanilmasi gerekebilir!!!
         GameStateOuterClass.GameState.Builder gs = GameStateOuterClass.GameState.newBuilder();
-        for (Player p : playersByChannelId.values()) {
-            Body b = p.getBody();
-            Vector2 pos = b.getTransform().getTranslation();
-            Vector2 vel = b.getLinearVelocity();
-            gs.addEntities(
-                    GameStateOuterClass.EntityState.newBuilder()
-                            .setId(p.getChannelId())
-                            .setX(pos.x).setY(pos.y)
-                            .setVx(vel.x).setVy(vel.y)
-                            .build()
-            );
-            //TODO: Burada ilgili client'a gitme durumu eziliyor, dongunun son elemani tarafindan ezilmis oluyor yani
-            ClientStateOuterClass.ClientState clientState = ClientStateOuterClass.ClientState.newBuilder()
-                    .setX(pos.x)
-                    .setY(pos.y)
-                    .setLastProcessedSequenceId(p.getLastProcessedSequenceId())
-                    .build();
-            gs.setClientState(clientState);
+//        for (Player p : playersByChannelId.values()) {
+//            Body b = p.getBody();
+//            Vector2 pos = b.getTransform().getTranslation();
+//            Vector2 vel = b.getLinearVelocity();
+//            gs.addEntities(
+//                    GameStateOuterClass.EntityState.newBuilder()
+//                            .setId(p.getChannel().id().asLongText())
+//                            .setX(pos.x).setY(pos.y)
+//                            .setVx(vel.x).setVy(vel.y)
+//                            .build()
+//            );
+//
+//        }
+
+        for(Channel channel : channels) {
+            sendClientData(playersByChannelId.get(channel.id().asLongText()));
         }
+
+
+
 
         GameStateOuterClass.GameState gameState = gs.build();
 
@@ -200,7 +222,7 @@ public class Game implements Runnable {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         envelope.writeDelimitedTo(baos);
         ByteBuf payload = Unpooled.wrappedBuffer(baos.toByteArray());
-        channels.writeAndFlush(new BinaryWebSocketFrame(payload));
+        //channels.writeAndFlush(new BinaryWebSocketFrame(payload));
     }
 
     @Override
@@ -228,15 +250,12 @@ public class Game implements Runnable {
                     Player player = playersByChannelId.get(in.getChannelId());
                     if (player != null) {
                         Body body = player.getBody();
-                        Vector2 direction = new Vector2(in.getDx(), in.getDy());
-                        if (!direction.isZero()) {
-                            direction.normalize();
-                        }
 
-                        double speed = 5.0;
+                        double angleInRadians = Math.toRadians(in.getRotateAngle());
+                        Vector2 direction = Vector2.create(1.0, angleInRadians);
+
+                        double speed = 5;
                         body.setLinearVelocity(direction.multiply(speed));
-
-                        //set player's last processedSequenceId
                         player.setLastProcessedSequenceId(in.getSequenceId());
                     }
                 }
@@ -246,6 +265,8 @@ public class Game implements Runnable {
                 try {
                     broadcastGameState(System.currentTimeMillis());
                 } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
