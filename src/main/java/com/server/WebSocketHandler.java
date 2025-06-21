@@ -5,10 +5,10 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 
-public class WebsocketHandler extends SimpleChannelInboundHandler<BinaryWebSocketFrame> {
+public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocketFrame> {
     private final ChannelGroup channels;
 
-    public WebsocketHandler(ChannelGroup channels) {
+    public WebSocketHandler(ChannelGroup channels) {
         this.channels = channels;
     }
 

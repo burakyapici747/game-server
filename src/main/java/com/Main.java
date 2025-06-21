@@ -1,10 +1,10 @@
 package com;
 
-import com.server.WebsocketServer;
+import com.server.WebSocketServer;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        WebsocketServer websocketServer = new WebsocketServer();
+        WebSocketServer websocketServer = new WebSocketServer();
         websocketServer.startServer();
     }
 }
