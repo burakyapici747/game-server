@@ -5,7 +5,6 @@ package server;
 import "client/client-data.proto";
 
 message ClientState {
-  client.ActionType actionType = 1;
   double x = 2;
   double y = 3;
   uint32 lastProcessedSequenceId = 4;

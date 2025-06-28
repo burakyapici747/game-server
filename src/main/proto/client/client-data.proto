@@ -13,7 +13,6 @@ enum ActionType{
     PONG = 7;
     GAME_STATE = 8;
     START_LOCATION = 9;
-    CLIENT_STATE = 10;
 }
 
 message ClientData {

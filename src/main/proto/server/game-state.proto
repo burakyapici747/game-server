@@ -6,7 +6,7 @@ import "client/client-data.proto";
 import "client/ping-data.proto";
 
 message EntityState {
-  string id = 1;
+  uint32 id = 1;
   double x = 2;
   double y = 3;
   double vx = 4;
@@ -14,6 +14,7 @@ message EntityState {
 }
 
 message GameState {
-  client.ActionType actionType = 1;
-  repeated EntityState entities = 2;
+  repeated EntityState entities = 1;
+  uint32 lastProcessedSequenceId = 2;
+  uint32 clientId = 3;
 }

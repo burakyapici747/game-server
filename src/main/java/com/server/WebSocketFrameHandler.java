@@ -1,6 +1,8 @@
 package com.server;
 
 import client.ClientDataOuterClass;
+import com.artemis.World;
+import com.component.*;
 import com.event.*;
 import com.lmax.disruptor.RingBuffer;
 import com.util.GameEventMapper;
@@ -9,11 +11,17 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
-public class WebsocketFrameHandler extends SimpleChannelInboundHandler<envelope.EnvelopeOuterClass.Envelope> {
-    private final RingBuffer<GameEvent> ringBuffer;
+import java.util.Map;
 
-    public WebsocketFrameHandler(RingBuffer<GameEvent> ringBuffer) {
+public class WebSocketFrameHandler extends SimpleChannelInboundHandler<envelope.EnvelopeOuterClass.Envelope> {
+    private final RingBuffer<GameEvent> ringBuffer;
+    private final World world;
+    private final Map<String, Integer> componentsByChannelId;
+
+    public WebSocketFrameHandler(RingBuffer<GameEvent> ringBuffer, World world, Map<String, Integer> componentsByChannelId) {
         this.ringBuffer = ringBuffer;
+        this.world = world;
+        this.componentsByChannelId = componentsByChannelId;
     }
 
     @Override
@@ -23,7 +31,6 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<envelope.
                 publishToDisruptor(envelope.getClientData(), ctx.channel());
             }
             default -> {
-                //TODO: Move ve ping disinda client'dan gelecek farkli tiplerdeki mesajlar buraya duser...
                 System.out.println("PING VE MOVE DISINDA CLIENT'DAN BIR PAKET GELDI!!!");
             }
         }
@@ -45,8 +52,10 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<envelope.
         long sequence = ringBuffer.next();
         try {
             GameEvent event = ringBuffer.get(sequence);
+            event.setWorld(world);
             event.setActionType(ActionType.CONNECT);
             event.setChannel(channel);
+            event.setComponentsByChannelId(this.componentsByChannelId);
         } finally {
             ringBuffer.publish(sequence);
         }
@@ -56,8 +65,10 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<envelope.
         long sequence = ringBuffer.next();
         try {
             GameEvent event = ringBuffer.get(sequence);
+            event.setWorld(world);
             event.setActionType(ActionType.DISCONNECT);
             event.setChannel(channel);
+            event.setComponentsByChannelId(componentsByChannelId);
         } finally {
             ringBuffer.publish(sequence);
         }
@@ -67,10 +78,11 @@ public class WebsocketFrameHandler extends SimpleChannelInboundHandler<envelope.
         long sequence = ringBuffer.next();
         try {
             GameEvent event = ringBuffer.get(sequence);
+            event.setWorld(world);
             GameEventMapper.toGameEvent(clientData, event, channel);
+            event.setComponentsByChannelId(componentsByChannelId);
         } finally {
             ringBuffer.publish(sequence);
         }
     }
-
 }
