@@ -93,13 +93,11 @@ public class WebSocketServer {
     }
 
     private void setupComponentWorld() {
-        world = new World();
         WorldConfiguration configuration = new WorldConfigurationBuilder()
                 .with(new MovementSystem())
                 .with(new NetworkingSystem())
                 .build();
-
-        world.create();
+        world = new World(configuration);
     }
 
     private void setupDisruptor() {

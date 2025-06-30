@@ -6,6 +6,7 @@ import com.artemis.ComponentMapper;
 import com.artemis.EntitySubscription;
 import com.artemis.annotations.All;
 import com.artemis.systems.IteratingSystem;
+import com.artemis.utils.IntBag;
 import com.component.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -36,10 +37,14 @@ public class NetworkingSystem extends IteratingSystem {
     }
 
     @Override
-    protected void process(int i) {
+    protected void process(int id) {
         server.GameStateOuterClass.GameState.Builder gameStateBuilder = server.GameStateOuterClass.GameState.newBuilder();
 
-        for (int entityId : this.players.getEntities().getData()) {
+        IntBag entityIds = this.players.getEntities();
+        int size = entityIds.size();
+
+        for (int i = 0; i < size; i++) {
+            int entityId = entityIds.get(i);
             PositionComponent positionComponent = positionMapper.get(entityId);
             VelocityComponent velocityComponent = velocityMapper.get(entityId);
             gameStateBuilder
@@ -54,7 +59,8 @@ public class NetworkingSystem extends IteratingSystem {
                     );
         }
 
-        for (int entityId : this.players.getEntities().getData()) {
+        for (int i = 0; i < size; i++) {
+            int entityId = entityIds.get(i);
             NettyChannelComponent nettyChannelComponent = channelMapper.get(entityId);
             gameStateBuilder
                     .setLastProcessedSequenceId(nettyChannelComponent.lastProcessedSequenceId)

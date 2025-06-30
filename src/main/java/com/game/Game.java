@@ -8,8 +8,7 @@ import com.event.GameEvent;
 import com.event.data.Input;
 import io.netty.channel.group.ChannelGroup;
 import org.dyn4j.dynamics.Body;
-import org.dyn4j.geometry.MassType;
-import org.dyn4j.geometry.Rectangle;
+import org.dyn4j.dynamics.TimeStep;
 import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
 
@@ -21,11 +20,11 @@ public class Game implements Runnable {
     private final ComponentMapper<PhysicBodyComponent> physicBodyMapper;
     private final ComponentMapper<NettyChannelComponent> nettyChannelComponentMapper;
 
-    private final double DT = 1 / 64.0;
+    private final double DT = 1 / 32.0;
     private final World<Body> gameWorld;
     private final com.artemis.World world;
     private final ChannelGroup channels;
-
+    private final double SPEED = 10;
     private JFrame frame;
     private DrawingPanel drawingPanel;
 
@@ -83,13 +82,13 @@ public class Game implements Runnable {
         this.gameWorld.removeBody(body);
     }
 
-
     @Override
     public void run() {
         double accumulator = 0.0;
         double t = 0.0;
         long lastTime = System.nanoTime();
         long simulationStartTimeMs = System.currentTimeMillis();
+        TimeStep timeStep = new TimeStep(0.02);
 
         while (true) {
             long now = System.nanoTime();
@@ -97,8 +96,8 @@ public class Game implements Runnable {
             lastTime = now;
 
             if (frameTime > 0.25) frameTime = 0.25;
-            accumulator += frameTime;
 
+            accumulator += frameTime;
             while (accumulator >= DT) {
                 accumulator -= DT;
                 t += DT;
@@ -110,13 +109,15 @@ public class Game implements Runnable {
                     int componentId = componentsByChannelId.get(in.getChannelId());
                     Body body = physicBodyMapper.get(componentId).body;
                     double angleInRadians = Math.toRadians(in.getRotateAngle());
-                    Vector2 direction = Vector2.create(1.0, angleInRadians);
-                    double speed = 5;
-                    body.setLinearVelocity(direction.multiply(speed));
+                    Vector2 direction = new Vector2(Math.cos(angleInRadians), Math.sin(angleInRadians));
+                    body.setLinearVelocity(direction.multiply(SPEED));
+                    body.integrateVelocity(World.ZERO_GRAVITY, timeStep, gameWorld.getSettings());
+                    body.integratePosition(timeStep, gameWorld.getSettings());
                     nettyChannelComponentMapper.get(componentId).lastProcessedSequenceId = in.getSequenceId();
                 }
-
-                gameWorld.step(1, DT);
+                if (frameTime > 0.0) {
+                    gameWorld.step(1, frameTime);
+                }
                 this.world.process();
             }
 
@@ -128,33 +129,6 @@ public class Game implements Runnable {
                 break;
             }
         }
-
     }
 
-
-    private void createBoundedMap(World<Body> world, double width, double height, double thickness) {
-        Body floor = new Body();
-        floor.addFixture(new Rectangle(width + 2 * thickness, thickness));
-        floor.translate(0, height);
-        floor.setMass(MassType.INFINITE);
-        world.addBody(floor);
-
-        Body ceiling = new Body();
-        ceiling.addFixture(new Rectangle(width + 2 * thickness, thickness));
-        ceiling.translate(0, 0);
-        ceiling.setMass(MassType.INFINITE);
-        world.addBody(ceiling);
-
-        Body leftWall = new Body();
-        leftWall.addFixture(new Rectangle(thickness, height));
-        leftWall.translate(0, 0);
-        leftWall.setMass(MassType.INFINITE);
-        world.addBody(leftWall);
-
-        Body rightWall = new Body();
-        rightWall.addFixture(new Rectangle(thickness, height));
-        rightWall.getTransform().setTranslation(width, 0);
-        rightWall.setMass(MassType.INFINITE);
-        world.addBody(rightWall);
-    }
 }

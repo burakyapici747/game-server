@@ -25,9 +25,9 @@ public class PlayerConnectEvent implements EventHandler<GameEvent> {
         Body body = new Body();
         body.addFixture(
                 Geometry.createCircle(0.3),
-                1.0,
-                0.4,
-                0.4
+                0.0,
+                0.0,
+                0.0
         );
         body.setMass(MassType.NORMAL);
         body.setEnabled(true);
@@ -36,7 +36,7 @@ public class PlayerConnectEvent implements EventHandler<GameEvent> {
 
         world.edit(componentId)
                 .add(new AngleComponent())
-                .add(new NettyChannelComponent(channel, null))
+                .add(new NettyChannelComponent(channel, 0))
                 .add(new PlayerTagComponent())
                 .add(new PositionComponent(5.0, 5.0))
                 .add(new VelocityComponent())
