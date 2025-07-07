@@ -5,6 +5,7 @@ import com.artemis.Component;
 public class PositionComponent extends Component {
     public double x;
     public double y;
+    public double angle;
 
     public PositionComponent() {}
 

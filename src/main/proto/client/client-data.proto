@@ -3,21 +3,21 @@ syntax = "proto3";
 package client;
 
 enum ActionType{
-    CONNECT = 0;
-    DISCONNECT = 1;
-    MOVE = 2;
-    ROTATION = 3;
-    FIRE = 4;
-    DEATH = 5;
-    PING = 6;
-    PONG = 7;
-    GAME_STATE = 8;
-    START_LOCATION = 9;
+  CONNECT = 0;
+  DISCONNECT = 1;
+  MOVE = 2;
+  ROTATION = 3;
+  FIRE = 4;
+  DEATH = 5;
+  PING = 6;
+  PONG = 7;
+  GAME_STATE = 8;
+  START_INFORMATION = 9;
 }
 
 message ClientData {
   ActionType action_type = 1;
-  uint32 rotateAngle = 2;
+  int64 rotateAngle = 2;
   int64 timestamp = 3;
   int32 sequence_id = 4;
 }

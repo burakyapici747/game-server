@@ -1,14 +1,14 @@
 package com.component;
 
 import com.artemis.Component;
-import org.dyn4j.dynamics.Body;
+import com.game.PlayerSnake;
 
 public class PhysicBodyComponent extends Component {
-    public Body body;
+    public PlayerSnake player;
 
     public PhysicBodyComponent() {}
 
-    public PhysicBodyComponent(Body body) {
-        this.body = body;
+    public PhysicBodyComponent(PlayerSnake player) {
+        this.player = player;
     }
 }

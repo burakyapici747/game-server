@@ -5,6 +5,7 @@ import com.artemis.WorldConfiguration;
 import com.artemis.WorldConfigurationBuilder;
 import com.component.system.MovementSystem;
 import com.component.system.NetworkingSystem;
+import com.component.system.SnakeBodySystem;
 import com.event.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.game.Game;
@@ -94,6 +95,7 @@ public class WebSocketServer {
 
     private void setupComponentWorld() {
         WorldConfiguration configuration = new WorldConfigurationBuilder()
+                .with(new SnakeBodySystem())
                 .with(new MovementSystem())
                 .with(new NetworkingSystem())
                 .build();

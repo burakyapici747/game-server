@@ -2,14 +2,13 @@ package com;
 
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.geometry.Circle;
-import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
 
 import java.awt.*;
 
 public class DebugDraw {
     protected World<Body> world;
-    protected double scale = 100.0; // 1 birim = 100 piksel
+    protected double scale = 25.0; // 1 birim = 100 piksel
 
     public DebugDraw(World<Body> world) {
         this.world = world;
@@ -38,7 +37,7 @@ public class DebugDraw {
                 g.fillOval(px, py, diameter, diameter);
                 // Metin de aynı tersleme ile
                 String posText = String.format("[%.2f, %.2f]", x, y);
-                g.drawString(posText, px, py);
+                //g.drawString(posText, px, py);
             }
         }
     }

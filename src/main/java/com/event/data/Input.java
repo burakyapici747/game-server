@@ -48,4 +48,15 @@ public class Input {
     public void setRotateAngle(short rotateAngle) {
         this.rotateAngle = rotateAngle;
     }
+
+    @Override
+    public String toString() {
+        return "Input{" +
+               "actionType=" + actionType +
+               ", sequenceId=" + sequenceId +
+               ", channelId='" + channelId + '\'' +
+               ", clientTimestampOffset=" + clientTimestampOffset +
+               ", rotateAngle=" + rotateAngle +
+               '}';
+    }
 }

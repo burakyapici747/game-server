@@ -2,10 +2,8 @@ syntax = "proto3";
 
 package server;
 
-import "client/client-data.proto";
-
 message ClientState {
-  double x = 2;
-  double y = 3;
-  uint32 lastProcessedSequenceId = 4;
+  double x = 1;
+  double y = 2;
+  uint32 lastProcessedSequenceId = 3;
 }

@@ -2,10 +2,7 @@ syntax = "proto3";
 
 package server;
 
-import "client/client-data.proto";
-
 message PongData {
-  client.ActionType actionType = 1;
   int64 serverTimestamp = 2;
   int64 clientTimestamp = 3;
   string nonce = 4;
