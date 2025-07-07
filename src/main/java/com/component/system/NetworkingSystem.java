@@ -38,6 +38,8 @@ public class NetworkingSystem extends IteratingSystem {
 
     @Override
     protected void process(int id) {
+        //TODO: Burada bir yerde entity interpolation yapacagimiz zaman karsimiza cikabilecek bir problem vardi
+        //iyice kontrol et!!!
         server.GameStateOuterClass.GameState.Builder gameStateBuilder = server.GameStateOuterClass.GameState.newBuilder();
 
         IntBag entityIds = this.players.getEntities();
@@ -55,6 +57,7 @@ public class NetworkingSystem extends IteratingSystem {
                                     .setY(positionComponent.y)
                                     .setVx(velocityComponent.dx)
                                     .setVy(velocityComponent.dy)
+                                    .setAngle((int)positionComponent.angle)
                                     .build()
                     );
         }
@@ -81,6 +84,7 @@ public class NetworkingSystem extends IteratingSystem {
                 throw new RuntimeException(e);
             }
             ByteBuf payload = Unpooled.wrappedBuffer(baos.toByteArray());
+
             nettyChannelComponent.channel.writeAndFlush(new BinaryWebSocketFrame(payload));
         }
     }

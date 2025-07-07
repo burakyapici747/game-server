@@ -8,6 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import server.Pong;
+import server.ServerEnvelopeOuterClass;
 
 import java.io.ByteArrayOutputStream;
 
@@ -20,32 +21,27 @@ public class PingPongHandler extends SimpleChannelInboundHandler<EnvelopeOuterCl
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, EnvelopeOuterClass.Envelope env) throws Exception {
-        switch (env.getPayloadCase()) {
-            case PINGDATA -> {
-                var pingData = env.getPingData();
-                Pong.PongData pongData = Pong.PongData.newBuilder()
-                        .setActionType(ClientDataOuterClass.ActionType.PONG)
-                        .setServerTimestamp(System.currentTimeMillis())
-                        .setClientTimestamp(pingData.getTimestamp())
-                        .setNonce(pingData.getNonce())
-                        .build();
+        if (env.getPayloadCase() == EnvelopeOuterClass.Envelope.PayloadCase.PINGDATA) {
+            var pingData = env.getPingData();
+            Pong.PongData pongData = Pong.PongData.newBuilder()
+                    .setServerTimestamp(System.currentTimeMillis())
+                    .setClientTimestamp(pingData.getTimestamp())
+                    .setNonce(pingData.getNonce())
+                    .build();
 
-                server.ServerEnvelopeOuterClass.ServerEnvelope serverEnv =
-                        server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
-                                .setActionType(ClientDataOuterClass.ActionType.PONG)
-                                .setPongData(pongData)
-                                .build();
+            ServerEnvelopeOuterClass.ServerEnvelope serverEnv =
+                    ServerEnvelopeOuterClass.ServerEnvelope.newBuilder()
+                            .setActionType(ClientDataOuterClass.ActionType.PONG)
+                            .setPongData(pongData)
+                            .build();
 
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                serverEnv.writeDelimitedTo(baos);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            serverEnv.writeDelimitedTo(baos);
 
-                ByteBuf buf = Unpooled.wrappedBuffer(baos.toByteArray());
-                ctx.writeAndFlush(new BinaryWebSocketFrame(buf));
-
-            }
-            default -> {
-                ctx.fireChannelRead(env);
-            }
+            ByteBuf buf = Unpooled.wrappedBuffer(baos.toByteArray());
+            ctx.writeAndFlush(new BinaryWebSocketFrame(buf));
+        } else {
+            ctx.fireChannelRead(env);
         }
     }
 }
