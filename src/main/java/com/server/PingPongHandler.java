@@ -4,6 +4,7 @@ import client.ClientDataOuterClass;
 import envelope.EnvelopeOuterClass;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -12,6 +13,7 @@ import server.ServerEnvelopeOuterClass;
 
 import java.io.ByteArrayOutputStream;
 
+@ChannelHandler.Sharable
 public class PingPongHandler extends SimpleChannelInboundHandler<EnvelopeOuterClass.Envelope> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

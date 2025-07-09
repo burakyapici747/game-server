@@ -36,12 +36,13 @@ public class PlayerConnectEvent implements EventHandler<GameEvent> {
         StartInformationDto startInformationDTO = playerBuilder.createPlayer(100, 0.5, entityId);
 
         world.edit(entityId)
-                .add(new AngleComponent())
-                .add(new NettyChannelComponent(channel, 0))
-                .add(new PlayerTagComponent())
-                .add(new PositionComponent(startInformationDTO.startPosition().x, startInformationDTO.startPosition().y))
-                .add(new VelocityComponent())
-                .add(new PhysicBodyComponent(startInformationDTO.playerSnake()));
+            .add(new AngleComponent())
+            .add(new NettyChannelComponent(channel))
+            .add(new PlayerTagComponent())
+            .add(new PositionComponent(startInformationDTO.startPosition().x, startInformationDTO.startPosition().y))
+            .add(new VelocityComponent())
+            .add(new AngleComponent())
+            .add(new PhysicBodyComponent(startInformationDTO.playerSnake()));
         return startInformationDTO;
     }
 }

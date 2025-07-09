@@ -7,129 +7,106 @@ import com.component.system.MovementSystem;
 import com.component.system.NetworkingSystem;
 import com.component.system.SnakeBodySystem;
 import com.event.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.game.Game;
 import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.util.DaemonThreadFactory;
-import envelope.EnvelopeOuterClass;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
-import io.netty.handler.codec.protobuf.ProtobufDecoder;
-import io.netty.handler.codec.protobuf.ProtobufEncoder;
-import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
-import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketServer {
+    private static final int PORT = 8080;
+    private static final int DISRUPTOR_BUFFER_SIZE = 1024;
+
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
 
-    private final Map<String, Integer> componentsByChannelId = new HashMap<>();
+    private final Map<String, Integer> componentsByChannelId = new ConcurrentHashMap<>();
+    private final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
-    // LMAX Disruptor
     private Disruptor<GameEvent> disruptor;
-    private RingBuffer<GameEvent> ringBuffer;
-    private ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     private World world;
 
     public WebSocketServer() {
-        this.bossGroup = new NioEventLoopGroup();
+        this.bossGroup = new NioEventLoopGroup(1);
         this.workerGroup = new NioEventLoopGroup();
     }
 
-    public void startServer() throws Exception {
+    public void start() {
         try {
             setupComponentWorld();
             setupDisruptor();
 
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            ChannelPipeline pipeline = socketChannel.pipeline();
-                            ObjectMapper objectMapper = new ObjectMapper();
+                .channel(NioServerSocketChannel.class)
+                .childHandler(new WebSocketServerInitializer(world, disruptor.getRingBuffer(), componentsByChannelId, channels))
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-                            WebSocketFrameHandler websocketFrameHandler = new WebSocketFrameHandler(ringBuffer, world, componentsByChannelId);
-                            PingPongHandler pingPongHandler = new PingPongHandler();
-
-                            //websocket destekli pipeline yapilandirmasi
-                            pipeline.addLast(new HttpServerCodec());
-                            pipeline.addLast(new HttpObjectAggregator(65536));//Websocket handshake islemleri icin gerekli
-                            pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));//websocket upgrade ve frame yonetimi
-                            pipeline.addLast(new WebSocketHandler(channels));
-                            pipeline.addLast(new ProtobufVarint32FrameDecoder());
-                            pipeline.addLast(new ProtobufDecoder(EnvelopeOuterClass.Envelope.getDefaultInstance()));
-                            pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
-                            pipeline.addLast(new ProtobufEncoder());
-                            pipeline.addLast(pingPongHandler);
-                            pipeline.addLast(websocketFrameHandler);
-
-                        }
-                    })
-                    .childOption(ChannelOption.TCP_NODELAY, true);
-            ChannelFuture channelFuture = bootstrap.bind(8080).sync();
+            System.out.println("WebSocket server started on port " + PORT + ".");
+            ChannelFuture channelFuture = bootstrap.bind(PORT).sync();
             channelFuture.channel().closeFuture().sync();
-        } catch (RuntimeException e) {
-            System.out.println("WebsocketServer icerisinde " + e.getMessage());
+
+        } catch (Exception e) {
+            System.err.println("An error occurred while starting the server: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            // Shutdown the event loop groups
+            System.out.println("Shutting down the server...");
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
+            if (disruptor != null) {
+                disruptor.shutdown();
+            }
         }
     }
 
     private void setupComponentWorld() {
+        System.out.println("Setting up Artemis ECS world...");
         WorldConfiguration configuration = new WorldConfigurationBuilder()
-                .with(new SnakeBodySystem())
-                .with(new MovementSystem())
-                .with(new NetworkingSystem())
-                .build();
+            .with(new SnakeBodySystem())
+            .with(new MovementSystem())
+            .with(new NetworkingSystem())
+            .build();
         world = new World(configuration);
+        System.out.println("Artemis ECS world set up.");
     }
 
     private void setupDisruptor() {
+        System.out.println("Setting up LMAX Disruptor...");
         Game game = new Game(channels, world, this.componentsByChannelId);
-        Thread th = new Thread(game);
-        th.start();
-        //RingBuffer'da tutulacak GameEvent'in constructur'ina yukarida olusturulan Game nesnesini pass'layan factory
+        Thread gameThread = new Thread(game);
+        gameThread.setName("Game-Loop-Thread");
+        gameThread.start();
+
         EventFactory<GameEvent> factory = () -> new GameEvent(game);
+
         disruptor = new Disruptor<>(
-                factory,
-                1024,
-                DaemonThreadFactory.INSTANCE,
-                ProducerType.MULTI,
-                new SleepingWaitStrategy()
+            factory,
+            DISRUPTOR_BUFFER_SIZE,
+            DaemonThreadFactory.INSTANCE,
+            ProducerType.MULTI,
+            new SleepingWaitStrategy()
         );
 
-        //disruptor uzerinden generate edilmis ringBuffer'in setle
-        ringBuffer = disruptor.getRingBuffer();
-
-        //Eventleri olustur ve siralamalari ayarla
         PlayerConnectEvent playerConnectEvent = new PlayerConnectEvent();
         PlayerDisconnectEvent playerDisconnectEvent = new PlayerDisconnectEvent();
         PlayerInputEvent playerInputEvent = new PlayerInputEvent();
         PhysicEvent physicEvent = new PhysicEvent();
 
         disruptor.handleEventsWith(playerConnectEvent, playerDisconnectEvent, playerInputEvent);
-        disruptor.after(playerInputEvent)
-                .then(physicEvent);
+        disruptor.after(playerInputEvent).then(physicEvent);
 
-        //Disruptor'u baslat
         disruptor.start();
+        System.out.println("LMAX Disruptor started.");
     }
 }

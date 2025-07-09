@@ -18,6 +18,4 @@ enum ActionType{
 message ClientData {
   ActionType action_type = 1;
   int64 rotateAngle = 2;
-  int64 timestamp = 3;
-  int32 sequence_id = 4;
 }

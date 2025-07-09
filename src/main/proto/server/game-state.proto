@@ -13,6 +13,5 @@ message EntityState {
 
 message GameState {
   repeated EntityState entities = 1;
-  uint32 lastProcessedSequenceId = 2;
-  uint32 clientId = 3;
+  uint32 clientId = 2;
 }

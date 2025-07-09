@@ -12,5 +12,6 @@ public class PositionComponent extends Component {
     public PositionComponent(double x, double y) {
         this.x = x;
         this.y = y;
+        System.out.println("Calisti = " + x + " " + y);
     }
 }
