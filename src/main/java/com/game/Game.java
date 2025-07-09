@@ -16,6 +16,7 @@ import org.dyn4j.dynamics.Body;
 import org.dyn4j.geometry.Vector2;
 import org.dyn4j.world.World;
 import server.StartInformationOuterClass;
+
 import javax.swing.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class Game implements Runnable {
     private final ComponentMapper<PhysicBodyComponent> physicBodyMapper;
     private final ComponentMapper<NettyChannelComponent> nettyChannelComponentMapper;
 
-    private final double DT = 1 / 30.0;
+    private final double DT = 1 / 64.0;
     private final World<Body> gameWorld;
     private final com.artemis.World world;
     private final ChannelGroup channels;
@@ -36,9 +37,7 @@ public class Game implements Runnable {
     private DrawingPanel drawingPanel;
 
 
-    public final PriorityBlockingQueue<Input> inputBuffer = new PriorityBlockingQueue<>(
-            11, Comparator.comparingLong(Input::getSequenceId)
-    );
+    public final Queue<Input> inputBuffer = new ArrayDeque<>();
 
     private final Map<String, Integer> componentsByChannelId;
 
@@ -49,6 +48,7 @@ public class Game implements Runnable {
         this.channels = channels;
         this.world = world;
         this.gameWorld = new World<>();
+        //this.gameWorld.addContactListener(new )
         this.gameWorld.getSettings().setMaximumTranslation(100);
         //TODO: Collision yapisi kuruldugunda bu asagidaki 2'si aktiflestirilip test edilebilir
         //this.gameWorld.getSettings().setVelocityConstraintSolverIterations(8);
@@ -79,9 +79,7 @@ public class Game implements Runnable {
     }
 
     public void addInput(Input input) {
-        if (input.getClientTimestampOffset() != null) {
-            this.inputBuffer.offer(input);
-        }
+        this.inputBuffer.offer(input);
     }
 
     public void addPlayer(GameEvent gameEvent, StartInformationDto startInformationDto) {
@@ -101,19 +99,19 @@ public class Game implements Runnable {
 
     public void sendStartInformation(Channel channel, StartInformationDto startInformationDto) {
         server.ServerEnvelopeOuterClass.ServerEnvelope.Builder serverEnvelopeBuilder =
-                server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder();
+            server.ServerEnvelopeOuterClass.ServerEnvelope.newBuilder();
 
         StartInformationOuterClass.StartInformation startInformation = StartInformationOuterClass.StartInformation.newBuilder()
-                .setStartDirection(startInformationDto.playerStartDirection())
-                .setX(startInformationDto.startPosition().x)
-                .setY(startInformationDto.startPosition().y)
-                .setSegmentCount(startInformationDto.segmentCount())
-                .build();
+            .setStartDirection(startInformationDto.playerStartDirection())
+            .setX(startInformationDto.startPosition().x)
+            .setY(startInformationDto.startPosition().y)
+            .setSegmentCount(startInformationDto.segmentCount())
+            .build();
 
         server.ServerEnvelopeOuterClass.ServerEnvelope serverEnvelope = serverEnvelopeBuilder
-                .setActionType(ClientDataOuterClass.ActionType.START_INFORMATION)
-                .setStartInformation(startInformation)
-                .build();
+            .setActionType(ClientDataOuterClass.ActionType.START_INFORMATION)
+            .setStartInformation(startInformation)
+            .build();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             serverEnvelope.writeDelimitedTo(baos);
@@ -129,9 +127,7 @@ public class Game implements Runnable {
     @Override
     public void run() {
         double accumulator = 0.0;
-        double t = 0.0;
         long lastTime = System.nanoTime();
-        long simulationStartTimeMs = System.currentTimeMillis();
 
         while (true) {
             long now = System.nanoTime();
@@ -143,8 +139,6 @@ public class Game implements Runnable {
             accumulator += frameTime;
             while (accumulator >= DT) {
                 accumulator -= DT;
-                t += DT;
-                long simTimeMs = simulationStartTimeMs + (long) (t * 1000);
 
                 Input in;
                 while ((in = inputBuffer.peek()) != null) {
@@ -164,17 +158,13 @@ public class Game implements Runnable {
 
                     body.setLinearVelocity(direction.multiply(SPEED));
                     body.getTransform().setRotation(newSmoothedAngle);
-
-                    nettyChannelComponentMapper.get(componentId).lastProcessedSequenceId = in.getSequenceId();
                     inputBuffer.poll();
                 }
                 gameWorld.step(1, DT);
-                //gameWorld.update(DT);
                 this.world.process();
             }
 
             try {
-                //TODO: Thread, sleep 1 gercekten gerekli mi?
                 Thread.sleep(1);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
